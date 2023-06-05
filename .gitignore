@@ -1,6 +1,8 @@
 # Repo specifics
 diffusion-net/
 ScanNet/
+pointnet2/
+PointCNN/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
