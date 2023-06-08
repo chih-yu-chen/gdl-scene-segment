@@ -1,8 +1,12 @@
-# Repo specifics
+# 3rd-party repos
 diffusion-net/
 ScanNet/
 pointnet2/
 PointCNN/
+
+# others
+colab/
+pretrained_models/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
