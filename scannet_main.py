@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
@@ -6,15 +7,23 @@ from tqdm import tqdm
 
 import sys
 pkg_path = Path(__file__).parent/"diffusion-net"/"src"
+# import os
+# os.getcwd()
+# pkg_path = Path(os.getcwd())/"diffusion-net"/"src"
 sys.path.append(str(pkg_path))
 import diffusion_net
 from scannet_dataset import ScanNetDataset
+import utils
+
+
 
 # parse a few args
 parser = argparse.ArgumentParser()
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
 parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz' or 'hks') default: hks", default = 'hks')
 args = parser.parse_args()
+
+
 
 # system things
 device = torch.device('cuda:0')
@@ -25,16 +34,17 @@ n_class = 21
 
 # model 
 input_features = args.input_features # one of ['xyz', 'hks']
+# input_features = 'xyz'
 k_eig = 128
 
 # training settings
 train = not args.evaluate
-n_epoch = 6
+# train = False
+n_epoch = 10
 lr = 1e-3
 decay_every = 2
 decay_rate = 0.5
 augment_random_rotate = (input_features == 'xyz')
-
 
 
 # important paths
@@ -43,6 +53,8 @@ data_dir = "/media/cychen/HDD/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
 pretrain_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
 model_save_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
+pred_dir = Path(data_dir)/"predictions"
+pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 
@@ -61,8 +73,9 @@ if train:
 # for verts, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels in tqdm(train_loader):
 #     pass
 
-# create the model
 
+
+# create the model
 C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
 
 model = diffusion_net.layers.DiffusionNet(C_in=C_in, C_out=n_class,
@@ -80,6 +93,8 @@ if not train:
 
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
+
+
 def train_epoch(epoch):
 
     # implement lr decay
@@ -96,6 +111,9 @@ def train_epoch(epoch):
     
     correct = 0
     total_num = 0
+    tps = torch.zeros(n_class).to(device)
+    fps = torch.zeros(n_class).to(device)
+    fns = torch.zeros(n_class).to(device)
     for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels in tqdm(train_loader):
 
         # move to device
@@ -133,14 +151,20 @@ def train_epoch(epoch):
         this_num = labels.shape[0]
         correct += this_correct
         total_num += this_num
+        this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
+        tps += this_tps
+        fps += this_fps
+        fns += this_fns
 
         # step the optimizer
         optimizer.step()
         optimizer.zero_grad()
 
-    train_acc = correct / total_num
+    acc = correct / total_num
+    ious = tps / (tps+fps+fns)
 
-    return train_acc
+    return ious, acc
+
 
 
 # do an evaluation pass on the test dataset 
@@ -150,9 +174,12 @@ def test():
     
     correct = 0
     total_num = 0
+    tps = torch.zeros(n_class).to(device)
+    fps = torch.zeros(n_class).to(device)
+    fns = torch.zeros(n_class).to(device)
     with torch.no_grad():
     
-        for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels in tqdm(test_loader):
+        for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(test_loader):
 
             # move to device
             verts = verts.to(device)
@@ -181,22 +208,32 @@ def test():
             this_num = labels.shape[0]
             correct += this_correct
             total_num += this_num
+            this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
+            tps += this_tps
+            fps += this_fps
+            fns += this_fns
+            np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels.cpu(), fmt='%d', delimiter='\n')
 
-    test_acc = correct / total_num
+    acc = correct / total_num
+    ious = tps / (tps+fps+fns)
 
-    return test_acc 
+    return ious, acc
 
 
+
+torch.set_printoptions(sci_mode=False)
 if train:
     print("Training...")
 
     for epoch in range(n_epoch):
-        train_acc = train_epoch(epoch)
-        test_acc = test()
-        print("Epoch {} - Train overall: {:06.3f}%  Test overall: {:06.3f}%".format(epoch, 100*train_acc, 100*test_acc))
+        train_ious, train_acc = train_epoch(epoch)
+        test_ious, test_acc = test()
+        print(f"Epoch {epoch} - Train IoU: {train_ious}  Test IoU: {test_ious}")
+        print(f"Epoch {epoch} - Train Acc: {train_acc}  Test Acc: {test_acc}")
 
     torch.save(model.state_dict(), str(model_save_path))
     print(f" ==> saving last model to {model_save_path}")
 
-test_acc = test()
-print("Overall test accuracy: {:06.3f}%".format(100*test_acc))
+test_ious, test_acc = test()
+print(f"Overall test IoU: {test_ious}")
+print(f"Overall test Acc: {test_acc}")

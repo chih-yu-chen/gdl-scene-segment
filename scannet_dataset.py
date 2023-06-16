@@ -74,4 +74,4 @@ class ScanNetDataset(Dataset):
         labels = self.label_map[labels]
         labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
 
-        return verts, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels
+        return verts, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene
