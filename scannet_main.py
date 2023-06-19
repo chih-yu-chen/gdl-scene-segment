@@ -170,7 +170,7 @@ def train_epoch(epoch):
 
 
 # do an evaluation pass on the test dataset 
-def test():
+def test(save=False):
     
     model.eval()
     
@@ -214,7 +214,10 @@ def test():
             tps += this_tps
             fps += this_fps
             fns += this_fns
-            np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels.cpu(), fmt='%d', delimiter='\n')
+
+            if save:
+                pred_labels = test_dataset.classes[pred_labels]
+                np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels.cpu(), fmt='%d', delimiter='\n')
 
     acc = correct / total_num
     ious = tps / (tps+fps+fns)
@@ -236,6 +239,6 @@ if train:
     torch.save(model.state_dict(), str(model_save_path))
     print(f" ==> saving last model to {model_save_path}")
 
-test_ious, test_acc = test()
+test_ious, test_acc = test(save=True)
 print(f"Overall test IoU: {test_ious}")
 print(f"Overall test Acc: {test_acc}")
