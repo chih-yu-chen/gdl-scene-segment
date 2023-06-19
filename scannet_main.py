@@ -40,9 +40,9 @@ k_eig = 128
 # training settings
 train = not args.evaluate
 # train = False
-n_epoch = 10
+n_epoch = 50
 lr = 1e-3
-decay_every = 2
+decay_every = 12
 decay_rate = 0.5
 augment_random_rotate = (input_features == 'xyz')
 
@@ -51,9 +51,10 @@ augment_random_rotate = (input_features == 'xyz')
 repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
 data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
-pretrain_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
-model_save_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
-pretrain_path.mkdir(parents=True, exist_ok=True)
+model_dir = Path(repo_dir, "..", "pretrained_models")
+model_dir.mkdir(parents=True, exist_ok=True)
+pretrain_path = Path(model_dir, f"scannet_semseg_{input_features}.pth")
+model_save_path = pretrain_path
 pred_dir = Path(data_dir)/"predictions"
 pred_dir.mkdir(parents=True, exist_ok=True)
 
@@ -115,7 +116,7 @@ def train_epoch(epoch):
     tps = torch.zeros(n_class).to(device)
     fps = torch.zeros(n_class).to(device)
     fns = torch.zeros(n_class).to(device)
-    for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels in tqdm(train_loader):
+    for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(train_loader):
 
         # move to device
         verts = verts.to(device)
