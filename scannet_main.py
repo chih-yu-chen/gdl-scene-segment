@@ -48,11 +48,12 @@ augment_random_rotate = (input_features == 'xyz')
 
 
 # important paths
-repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
-data_dir = "/media/cychen/HDD/scannet"
+repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
 pretrain_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
 model_save_path = Path(repo_dir, "..", "pretrained_models", f"scannet_semseg_{input_features}.pth")
+pretrain_path.mkdir(parents=True, exist_ok=True)
 pred_dir = Path(data_dir)/"predictions"
 pred_dir.mkdir(parents=True, exist_ok=True)
 
