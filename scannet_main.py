@@ -48,8 +48,10 @@ augment_random_rotate = (input_features == 'xyz')
 
 
 # important paths
-repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
-data_dir = "/shared/scannet"
+repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
+data_dir = "/media/cychen/HDD/scannet"
+# repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+# data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
 model_dir = Path(repo_dir, "..", "pretrained_models")
 model_dir.mkdir(parents=True, exist_ok=True)
@@ -216,8 +218,8 @@ def test(save=False):
             fns += this_fns
 
             if save:
-                pred_labels = test_dataset.classes[pred_labels]
-                np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels.cpu(), fmt='%d', delimiter='\n')
+                pred_labels = test_dataset.classes[pred_labels.cpu()]
+                np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
 
     acc = correct / total_num
     ious = tps / (tps+fps+fns)
