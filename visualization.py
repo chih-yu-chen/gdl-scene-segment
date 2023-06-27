@@ -1,7 +1,6 @@
 import json
 import open3d as o3d
 from open3d.visualization import draw_geometries, Visualizer
-from pathlib import Path
 
 
 

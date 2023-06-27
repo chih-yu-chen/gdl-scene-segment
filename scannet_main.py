@@ -57,7 +57,7 @@ model_dir = Path(repo_dir, "..", "pretrained_models")
 model_dir.mkdir(parents=True, exist_ok=True)
 pretrain_path = Path(model_dir, f"scannet_semseg_{input_features}.pth")
 model_save_path = pretrain_path
-pred_dir = Path(data_dir)/"predictions"
+pred_dir = Path(data_dir)/"preds"
 pred_dir.mkdir(parents=True, exist_ok=True)
 
 
