@@ -31,6 +31,12 @@ dtype = torch.float32
 
 # problem/dataset things
 n_class = 21
+class_names = "\
+mIoU,none,\
+wall,floor,cabinet,bed,chair,\
+sofa,table,door,window,bookshelf,\
+picture,counter,desk,curtain,refridgerator,\
+shower curtain,toilet,sink,bathtub,otherfurniture"
 
 # model 
 input_features = args.input_features # one of ['xyz', 'hks']
@@ -113,8 +119,6 @@ def train_epoch(epoch):
     model.train()
     optimizer.zero_grad()
     
-    correct = 0
-    total_num = 0
     tps = torch.zeros(n_class).to(device)
     fps = torch.zeros(n_class).to(device)
     fns = torch.zeros(n_class).to(device)
@@ -151,10 +155,6 @@ def train_epoch(epoch):
         
         # track accuracy
         pred_labels = torch.max(preds, dim=1).indices
-        this_correct = pred_labels.eq(labels).sum().item()
-        this_num = labels.shape[0]
-        correct += this_correct
-        total_num += this_num
         this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
         tps += this_tps
         fps += this_fps
@@ -164,10 +164,9 @@ def train_epoch(epoch):
         optimizer.step()
         optimizer.zero_grad()
 
-    acc = correct / total_num
     ious = tps / (tps+fps+fns)
 
-    return ious, acc
+    return np.insert(ious, 0, ious.mean())
 
 
 
@@ -176,8 +175,6 @@ def test(save=False):
     
     model.eval()
     
-    correct = 0
-    total_num = 0
     tps = torch.zeros(n_class).to(device)
     fps = torch.zeros(n_class).to(device)
     fns = torch.zeros(n_class).to(device)
@@ -208,10 +205,6 @@ def test(save=False):
 
             # track accuracy
             pred_labels = torch.max(preds, dim=1).indices
-            this_correct = pred_labels.eq(labels).sum().item()
-            this_num = labels.shape[0]
-            correct += this_correct
-            total_num += this_num
             this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
             tps += this_tps
             fps += this_fps
@@ -221,26 +214,32 @@ def test(save=False):
                 pred_labels = test_dataset.classes[pred_labels.cpu()]
                 np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
 
-    acc = correct / total_num
     ious = tps / (tps+fps+fns)
 
-    return ious, acc
+    return np.insert(ious, 0, ious.mean())
 
 
 
 torch.set_printoptions(sci_mode=False)
+train_ious_rec = []
+test_ious_rec = []
+
 if train:
+
     print("Training...")
 
     for epoch in range(n_epoch):
-        train_ious, train_acc = train_epoch(epoch)
-        test_ious, test_acc = test()
-        print(f"Epoch {epoch} - Train IoU: {train_ious}  Test IoU: {test_ious}")
-        print(f"Epoch {epoch} - Train Acc: {train_acc}  Test Acc: {test_acc}")
+        train_ious = train_epoch(epoch)
+        test_ious = test()
+        train_ious_rec.append(train_ious)
+        test_ious_rec.append(test_ious)
+        print(f"Epoch {epoch}\nTrain IoU: {train_ious}\nTest IoU: {test_ious}")
 
     torch.save(model.state_dict(), str(model_save_path))
     print(f" ==> saving last model to {model_save_path}")
+    ious_filename = model_save_path.parent/model_save_path.stem
+    np.savetxt(ious_filename+"train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
+    np.savetxt(ious_filename+"test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
 
-test_ious, test_acc = test(save=True)
+test_ious = test(save=True)
 print(f"Overall test IoU: {test_ious}")
-print(f"Overall test Acc: {test_acc}")
