@@ -166,7 +166,7 @@ def train_epoch(epoch):
 
     ious = tps / (tps+fps+fns)
 
-    return np.insert(ious, 0, ious.mean())
+    return np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
 
 
 
@@ -216,7 +216,7 @@ def test(save=False):
 
     ious = tps / (tps+fps+fns)
 
-    return np.insert(ious, 0, ious.mean())
+    return np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
 
 
 
