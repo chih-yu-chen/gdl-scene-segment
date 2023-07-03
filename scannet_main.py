@@ -46,18 +46,18 @@ k_eig = 128
 # training settings
 train = not args.evaluate
 # train = False
-n_epoch = 50
+n_epoch = 10
 lr = 1e-3
-decay_every = 12
+decay_every = 5
 decay_rate = 0.5
 augment_random_rotate = (input_features == 'xyz')
 
 
 # important paths
-repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
-data_dir = "/media/cychen/HDD/scannet"
-# repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
-# data_dir = "/shared/scannet"
+# repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
+# data_dir = "/media/cychen/HDD/scannet"
+repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
 model_dir = Path(repo_dir, "..", "pretrained_models")
 model_dir.mkdir(parents=True, exist_ok=True)
@@ -238,8 +238,8 @@ if train:
     torch.save(model.state_dict(), str(model_save_path))
     print(f" ==> saving last model to {model_save_path}")
     ious_filename = model_save_path.parent/model_save_path.stem
-    np.savetxt(ious_filename+"train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
-    np.savetxt(ious_filename+"test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
+    np.savetxt(str(ious_filename)+"train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
+    np.savetxt(str(ious_filename)+"test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
 
 test_ious = test(save=True)
 print(f"Overall test IoU: {test_ious}")
