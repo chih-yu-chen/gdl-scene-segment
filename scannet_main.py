@@ -46,24 +46,25 @@ k_eig = 128
 # training settings
 train = not args.evaluate
 # train = False
-n_epoch = 10
+n_epoch = 50
 lr = 1e-3
-decay_every = 5
-decay_rate = 0.5
+decay_every = 50
+decay_rate = 0.98
 augment_random_rotate = (input_features == 'xyz')
 
 
 # important paths
-# repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
-# data_dir = "/media/cychen/HDD/scannet"
-repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
-data_dir = "/shared/scannet"
+experiment = "room_50_50"
+repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
+data_dir = "/media/cychen/HDD/scannet"
+# repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+# data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
-model_dir = Path(repo_dir, "..", "pretrained_models")
+model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
 model_dir.mkdir(parents=True, exist_ok=True)
 pretrain_path = Path(model_dir, f"scannet_semseg_{input_features}.pth")
 model_save_path = pretrain_path
-pred_dir = Path(data_dir)/"preds"
+pred_dir = Path(data_dir, "preds", experiment)
 pred_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -103,7 +104,18 @@ if not train:
 
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
+def random_rotate_points_z(pts):
 
+    angles = torch.rand(1, device=pts.device, dtype=pts.dtype) * (2. * np.pi)
+    rot_mats = torch.zeros(3, 3, device=pts.device, dtype=pts.dtype)
+    rot_mats[0,0] = torch.cos(angles)
+    rot_mats[0,1] = torch.sin(angles)
+    rot_mats[1,0] = -torch.sin(angles)
+    rot_mats[1,1] = torch.cos(angles)
+    rot_mats[2,2] = 1.
+
+    pts = torch.matmul(pts, rot_mats)
+    return pts
 
 def train_epoch(epoch):
 
@@ -119,6 +131,7 @@ def train_epoch(epoch):
     model.train()
     optimizer.zero_grad()
     
+    total_loss = 0
     tps = torch.zeros(n_class).to(device)
     fps = torch.zeros(n_class).to(device)
     fns = torch.zeros(n_class).to(device)
@@ -138,7 +151,7 @@ def train_epoch(epoch):
         
         # randomly rotate positions
         if augment_random_rotate:
-            verts = diffusion_net.utils.random_rotate_points(verts)
+            verts = random_rotate_points_z(verts)
 
         # construct features
         if input_features == 'xyz':
@@ -152,6 +165,7 @@ def train_epoch(epoch):
         # evaluate loss
         loss = torch.nn.functional.nll_loss(preds, labels)
         loss.backward()
+        total_loss += loss.item() * labels.shape[0]
         
         # track accuracy
         pred_labels = torch.max(preds, dim=1).indices
@@ -166,7 +180,7 @@ def train_epoch(epoch):
 
     ious = tps / (tps+fps+fns)
 
-    return np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
+    return total_loss, np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
 
 
 
@@ -221,25 +235,40 @@ def test(save=False):
 
 
 torch.set_printoptions(sci_mode=False)
-train_ious_rec = []
-test_ious_rec = []
+# train_ious_rec = []
+# test_ious_rec = []
+filestem = model_save_path.parent/model_save_path.stem
 
 if train:
 
+    with open(str(filestem)+"_train_ious.csv", 'w') as f:
+        f.write(class_names)
+        f.write("\n")
+    with open(str(filestem)+"_test_ious.csv", 'w') as f:
+        f.write(class_names)
+        f.write("\n")
     print("Training...")
 
     for epoch in range(n_epoch):
-        train_ious = train_epoch(epoch)
+        train_loss, train_ious = train_epoch(epoch)
         test_ious = test()
-        train_ious_rec.append(train_ious)
-        test_ious_rec.append(test_ious)
-        print(f"Epoch {epoch}\nTrain IoU: {train_ious}\nTest IoU: {test_ious}")
+        # train_ious_rec.append(train_ious)
+        # test_ious_rec.append(test_ious)
+        print(f"Epoch {epoch}, Train Loss: {train_loss:.4f}\nTrain IoU: {train_ious}\nTest IoU: {test_ious}")
+        with open(str(filestem)+"_train_ious.csv", 'ab') as f:
+            np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
+        with open(str(filestem)+"_test_ious.csv", 'ab') as f:
+            np.savetxt(f, test_ious[np.newaxis,:], delimiter=',')
+        with open(str(filestem)+"_train_loss.csv", 'a') as f:
+            f.write(str(train_loss))
+            f.write('\n')
+
 
     torch.save(model.state_dict(), str(model_save_path))
     print(f" ==> saving last model to {model_save_path}")
-    ious_filename = model_save_path.parent/model_save_path.stem
-    np.savetxt(str(ious_filename)+"train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
-    np.savetxt(str(ious_filename)+"test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
+    # filestem = model_save_path.parent/model_save_path.stem
+    # np.savetxt(str(filestem)+"_train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
+    # np.savetxt(str(filestem)+"_test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
 
 test_ious = test(save=True)
 print(f"Overall test IoU: {test_ious}")
