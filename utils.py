@@ -1,9 +1,23 @@
 import numpy as np
 from pathlib import Path
 from plyfile import PlyData
+import torch
 from torcheval.metrics import MulticlassConfusionMatrix
 
 
+
+def random_rotate_points_z(pts):
+
+    angles = torch.rand(1, device=pts.device, dtype=pts.dtype) * (2. * np.pi)
+    rot_mats = torch.zeros(3, 3, device=pts.device, dtype=pts.dtype)
+    rot_mats[0,0] = torch.cos(angles)
+    rot_mats[0,1] = torch.sin(angles)
+    rot_mats[1,0] = -torch.sin(angles)
+    rot_mats[1,1] = torch.cos(angles)
+    rot_mats[2,2] = 1.
+
+    pts = torch.matmul(pts, rot_mats)
+    return pts
 
 def get_ious(preds, labels, n_class, device):
 
