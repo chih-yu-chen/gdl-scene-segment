@@ -164,8 +164,8 @@ def train_epoch(epoch):
 
         # evaluate loss
         loss = torch.nn.functional.nll_loss(preds, labels)
+        total_loss += loss.item()
         loss.backward()
-        total_loss += loss.item() * labels.shape[0]
         
         # track accuracy
         pred_labels = torch.max(preds, dim=1).indices
@@ -189,6 +189,7 @@ def test(save=False):
     
     model.eval()
     
+    total_loss = 0
     tps = torch.zeros(n_class).to(device)
     fps = torch.zeros(n_class).to(device)
     fns = torch.zeros(n_class).to(device)
@@ -216,6 +217,8 @@ def test(save=False):
 
             # apply the model
             preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
+            loss = torch.nn.functional.nll_loss(preds, labels)
+            total_loss += loss.item()
 
             # track accuracy
             pred_labels = torch.max(preds, dim=1).indices
@@ -230,7 +233,7 @@ def test(save=False):
 
     ious = tps / (tps+fps+fns)
 
-    return np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
+    return total_loss, np.insert(ious.cpu(), 0, ious[1:].cpu().mean())
 
 
 
@@ -251,16 +254,20 @@ if train:
 
     for epoch in range(n_epoch):
         train_loss, train_ious = train_epoch(epoch)
-        test_ious = test()
+        test_loss, test_ious = test()
         # train_ious_rec.append(train_ious)
         # test_ious_rec.append(test_ious)
-        print(f"Epoch {epoch}, Train Loss: {train_loss:.4f}\nTrain IoU: {train_ious}\nTest IoU: {test_ious}")
+        print(f"Epoch {epoch}")
+        print(f"Train Loss: {train_loss:.4f} \nTrain IoU: {train_ious}\n")
+        print(f"Test Loss: {test_loss:.4f} \nTest IoU: {test_ious}")
         with open(str(filestem)+"_train_ious.csv", 'ab') as f:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
         with open(str(filestem)+"_test_ious.csv", 'ab') as f:
             np.savetxt(f, test_ious[np.newaxis,:], delimiter=',')
-        with open(str(filestem)+"_train_loss.csv", 'a') as f:
+        with open(str(filestem)+"_loss.csv", 'a') as f:
             f.write(str(train_loss))
+            f.write(",")
+            f.write(str(test_loss))
             f.write('\n')
 
 
@@ -270,5 +277,5 @@ if train:
     # np.savetxt(str(filestem)+"_train_ious.csv", np.vstack(train_ious_rec), delimiter=',', header=class_names, comments='')
     # np.savetxt(str(filestem)+"_test_ious.csv", np.vstack(test_ious_rec), delimiter=',', header=class_names, comments='')
 
-test_ious = test(save=True)
-print(f"Overall test IoU: {test_ious}")
+test_loss, test_ious = test(save=True)
+print(f"Overall Test Loss: {test_loss} \nTest IoU: {test_ious}")
