@@ -37,7 +37,7 @@ shower curtain,toilet,sink,bathtub,otherfurniture\n"
 
 # model settings
 input_features = args.input_features # one of ['xyz', 'hks']
-k_eig = 128
+k_eig = 32
 
 
 
@@ -49,12 +49,13 @@ augment_random_rotate = (input_features == 'xyz')
 
 
 # paths
-experiment = "room_50_13_0.001_0.5"
+experiment = "room_50_1e-3_keig32_DiffNet_13"
 repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
 data_dir = "/media/cychen/HDD/scannet"
 # repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
 # data_dir = "/shared/scannet"
-op_cache_dir = Path(data_dir, "diffusion-net", "op_cache")
+op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
+op_cache_dir.mkdir(parents=True, exist_ok=True)
 model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
 model_dir.mkdir(parents=True, exist_ok=True)
 pretrain_path = Path(model_dir, f"scannet_semseg_{input_features}.pth")
@@ -247,8 +248,6 @@ if train:
 
     for epoch in range(n_epoch):
 
-        for param_group in optimizer.param_groups:
-            print(f"Learning rate: {param_group['lr']}")
         train_loss, train_ious = train_epoch()
         test_loss, test_ious = test()
         scheduler.step()
