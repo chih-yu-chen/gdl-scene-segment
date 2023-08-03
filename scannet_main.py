@@ -37,19 +37,20 @@ shower curtain,toilet,sink,bathtub,otherfurniture\n"
 
 # model settings
 input_features = args.input_features # one of ['xyz', 'hks']
-k_eig = 32
+k_eig = 128
 
 
 
 # training settings
 train = not args.evaluate
-n_epoch = 50
+n_epoch = 25
 lr = 1e-3
 augment_random_rotate = (input_features == 'xyz')
+with_gradient_rotations = False
 
 
 # paths
-experiment = "room_50_1e-3_keig32_DiffNet_13"
+experiment = "room_25_1e-3_DiffNet_13_wo_grad_roto"
 repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
 data_dir = "/media/cychen/HDD/scannet"
 # repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
@@ -90,7 +91,8 @@ model = diffusion_net.layers.DiffusionNet(C_in=C_in, C_out=n_class,
                                           C_width=128, N_block=4,
                                           last_activation=lambda x: torch.nn.functional.log_softmax(x,dim=-1),
                                           outputs_at='vertices',
-                                          dropout=True)
+                                          dropout=True,
+                                          with_gradient_rotations=with_gradient_rotations)
 
 model = model.to(device)
 
