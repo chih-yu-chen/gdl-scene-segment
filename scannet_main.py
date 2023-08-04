@@ -15,15 +15,21 @@ import utils
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
+parser.add_argument("--gpu", type=str, help="which gpu")
+parser.add_argument("--cpu", action="store_true", help="use cpu instead of gpu")
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
-parser.add_argument("--input_features", type=str, help="'xyz' or 'hks', default: xyz", default = 'xyz')
+parser.add_argument("--input_features", type=str, help="'xyz', 'xyzrgb', or 'hks', default: xyz", default = 'xyz')
+parser.add_argument("--with_gradient_rotations", action="store_true", help="with learned gradient rotations")
+parser.add_argument("--experiment", type=str, help="experiment name")
 args = parser.parse_args()
 
 
 
 # computing devices
-device = torch.device('cuda:0')
-dtype = torch.float32
+if args.cpu:
+    device = torch.device('cpu')
+else:
+    device = torch.device(f'cuda:{args.gpu}')
 
 
 
@@ -36,7 +42,7 @@ picture,counter,desk,curtain,refridgerator,\
 shower curtain,toilet,sink,bathtub,otherfurniture\n"
 
 # model settings
-input_features = args.input_features # one of ['xyz', 'hks']
+input_features = args.input_features # one of ['xyz', 'xyzrgb, 'hks']
 k_eig = 128
 
 
@@ -45,12 +51,13 @@ k_eig = 128
 train = not args.evaluate
 n_epoch = 25
 lr = 1e-3
-augment_random_rotate = (input_features == 'xyz')
-with_gradient_rotations = False
+augment_random_rotate = (input_features == 'xyz') | (input_features == 'xyzrgb')
+with_rgb = (input_features == 'xyzrgb')
+with_gradient_rotations = args.with_gradient_rotations
 
 
 # paths
-experiment = "room_25_1e-3_DiffNet_13_wo_grad_roto"
+experiment = args.experiment
 repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
 data_dir = "/media/cychen/HDD/scannet"
 # repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
@@ -67,11 +74,11 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, k_eig=k_eig, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
@@ -85,7 +92,7 @@ if train:
 
 
 # the model
-C_in = {'xyz':3, 'hks':16}[input_features]
+C_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 
 model = diffusion_net.layers.DiffusionNet(C_in=C_in, C_out=n_class,
                                           C_width=128, N_block=4,
@@ -128,7 +135,7 @@ def train_epoch():
     fps = torch.zeros(n_class)
     fns = torch.zeros(n_class)
 
-    for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _ in tqdm(train_loader):
+    for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _ in tqdm(train_loader):
 
         optimizer.zero_grad()
 
@@ -148,9 +155,15 @@ def train_epoch():
         if augment_random_rotate:
             verts = utils.random_rotate_points_z(verts)
 
+        # rgb features
+        if with_rgb:
+            rgb = rgb.to(device)
+
         # construct features
         if input_features == 'xyz':
             features = verts
+        elif input_features == 'xyzrgb':
+            features = torch.hstack((verts, rgb))
         elif input_features == 'hks':
             features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
@@ -190,7 +203,7 @@ def test(save=False):
 
     with torch.no_grad():
     
-        for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(test_loader):
+        for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(test_loader):
 
             # move to device
             verts = verts.to(device)
@@ -204,9 +217,15 @@ def test(save=False):
             gradY = gradY.to(device)
             labels = labels.to(device)
             
+            # rgb features
+            if with_rgb:
+                rgb = rgb.to(device)
+
             # construct features
             if input_features == 'xyz':
                 features = verts
+            elif input_features == 'xyzrgb':
+                features = torch.hstack((verts, rgb))
             elif input_features == 'hks':
                 features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 

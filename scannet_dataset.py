@@ -16,11 +16,12 @@ import diffusion_net
 
 class ScanNetDataset(Dataset):
 
-    def __init__(self, train, repo_dir, data_dir, k_eig=128, op_cache_dir=None):
+    def __init__(self, train, repo_dir, data_dir, with_rgb=False, k_eig=128, op_cache_dir=None):
 
         self.train = train
         self.repo_dir = Path(repo_dir)
         self.data_dir = Path(data_dir)
+        self.with_rgb = with_rgb
         self.k_eig = k_eig 
         self.op_cache_dir = Path(op_cache_dir)
         self.classes = np.asarray([0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
@@ -61,6 +62,13 @@ class ScanNetDataset(Dataset):
         # center and unit scale
         verts = diffusion_net.geometry.normalize_positions(verts)
 
+        # load rgb
+        rgb = None
+        if self.with_rgb:
+            rgb_path = self.data_dir/"rgb"/f"{scene}_rgb.txt"
+            rgb = np.loadtxt(rgb_path, delimiter=',')
+            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
+
         # precompute operators
         frames, massvec, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
 
@@ -70,8 +78,8 @@ class ScanNetDataset(Dataset):
         # load labels
         with open(label_path, 'rb') as f:
             plydata = PlyData.read(f)
-            labels = plydata['vertex'].data['label']
+        labels = plydata['vertex'].data['label']
         labels = self.label_map[labels]
         labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
 
-        return verts, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene
+        return verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene

@@ -53,19 +53,37 @@ def save_ground_truth_labels(scene_list, gt_dir, dst_dir, label_map):
 
     return
 
+def save_rgb(scene_list, mesh_dir, dst_dir):
+
+    for scene in scene_list:
+        mesh_path = mesh_dir/scene/(scene+"_vh_clean_2.ply")
+        with open(mesh_path, 'rb') as f:
+            plydata = PlyData.read(f)
+        rgb = np.vstack((plydata['vertex'].data['red'], plydata['vertex'].data['green'], plydata['vertex'].data['blue'])).T
+        dst_path = dst_dir/(scene+"_rgb.txt")
+        print(f"saving rgb of mesh at {dst_path}")
+        np.savetxt(dst_path, rgb, fmt='%d', delimiter=',')
+
+    return
+
+
 if __name__ == '__main__':
 
-    classes = np.asarray([0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
-    label_map = np.zeros(41, dtype=np.int8)
-    np.put(label_map, classes, np.arange(classes.size))
+    # classes = np.asarray([0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
+    # label_map = np.zeros(41, dtype=np.int8)
+    # np.put(label_map, classes, np.arange(classes.size))
 
-    val_split = "ScanNet/Tasks/Benchmark/scannetv2_val.txt"
+    val_split = "ScanNet/Tasks/Benchmark/scannetv2_test.txt"
     with open(val_split, 'r') as f:
         scene_list = f.read().splitlines()
 
-    pred_dir = Path("/media/cychen/HDD/scannet/gts/")
-    back_convert_labels(pred_dir, classes)
+    # pred_dir = Path("/media/cychen/HDD/scannet/gts/")
+    # back_convert_labels(pred_dir, classes)
 
     # gt_dir = Path("/media/cychen/HDD/scannet/scans")
     # dst_dir = Path("/media/cychen/HDD/scannet/gts")
     # save_ground_truth_labels(scene_list, gt_dir, dst_dir, label_map)
+
+    mesh_dir = Path("/media/cychen/HDD/scannet/scans_test")
+    dst_dir = Path("/media/cychen/HDD/scannet/rgb")
+    save_rgb(scene_list, mesh_dir, dst_dir)
