@@ -1,6 +1,7 @@
 import json
 import open3d as o3d
 from open3d.visualization import draw_geometries, Visualizer
+from pathlib import Path
 
 
 
@@ -48,6 +49,7 @@ def render_all_images(scene_list, view_list, run_name):
         pred_mesh = o3d.io.read_triangle_mesh(pred)
 
         traj = view['trajectory'][0]
+        Path(f"vis/imgs/{run_name}").mkdir(parents=True, exist_ok=True)
         render_to_image(f"vis/imgs/{run_name}/{scene}_gt.png", gt_mesh, traj)
         render_to_image(f"vis/imgs/{run_name}/{scene}_pred.png", pred_mesh, traj)
 
@@ -66,4 +68,4 @@ if __name__ == '__main__':
     with open ("vis/view.json", "r") as f:
         view_list = json.load(f)
 
-    render_all_images(scene_list, view_list, "hal_50_12")
+    render_all_images(scene_list, view_list, "hal_20_10")
