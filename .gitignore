@@ -1,10 +1,9 @@
 # 3rd-party repos
 diffusion-net/
 ScanNet/
-pointnet2/
-PointCNN/
 
-# others
+# local records
+experiments_baseline/
 colab/
 pretrained_models/
 vis/
