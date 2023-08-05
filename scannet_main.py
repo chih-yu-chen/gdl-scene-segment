@@ -15,6 +15,7 @@ import utils
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
+parser.add_argument("--machine", type=str, help="which machine")
 parser.add_argument("--gpu", type=str, help="which gpu")
 parser.add_argument("--cpu", action="store_true", help="use cpu instead of gpu")
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
@@ -58,10 +59,12 @@ with_gradient_rotations = args.with_gradient_rotations
 
 # paths
 experiment = args.experiment
-repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
-data_dir = "/media/cychen/HDD/scannet"
-# repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
-# data_dir = "/shared/scannet"
+if args.machine == "room":
+    repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
+    data_dir = "/media/cychen/HDD/scannet"
+elif args.machine == "hal":
+    repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+    data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
 model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
