@@ -15,13 +15,13 @@ import utils
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
-parser.add_argument("--machine", type=str, help="which machine")
-parser.add_argument("--gpu", type=str, help="which gpu")
+parser.add_argument("--machine", type=str, help="which machine", required=True)
+parser.add_argument("--gpu", type=str, default="0", help="which gpu")
 parser.add_argument("--cpu", action="store_true", help="use cpu instead of gpu")
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
-parser.add_argument("--input_features", type=str, help="'xyz', 'xyzrgb', or 'hks', default: xyz", default = 'xyz')
-parser.add_argument("--with_gradient_rotations", action="store_true", help="with learned gradient rotations")
-parser.add_argument("--experiment", type=str, help="experiment name")
+parser.add_argument("--input_features", type=str, default = 'xyz', help="'xyz', 'xyzrgb', or 'hks', default: xyz")
+parser.add_argument("--without_gradient_rotations", action="store_true", help="without learned gradient rotations")
+parser.add_argument("--experiment", type=str, help="experiment name", required=True)
 args = parser.parse_args()
 
 
@@ -51,10 +51,11 @@ k_eig = 128
 # training settings
 train = not args.evaluate
 n_epoch = 25
+pseudo_batch_size = 16
 lr = 1e-3
 augment_random_rotate = (input_features == 'xyz') | (input_features == 'xyzrgb')
 with_rgb = (input_features == 'xyzrgb')
-with_gradient_rotations = args.with_gradient_rotations
+with_gradient_rotations = not args.without_gradient_rotations
 
 
 # paths
@@ -138,9 +139,9 @@ def train_epoch():
     fps = torch.zeros(n_class)
     fns = torch.zeros(n_class)
 
-    for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _ in tqdm(train_loader):
+    optimizer.zero_grad()
 
-        optimizer.zero_grad()
+    for i, (verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _) in enumerate(tqdm(train_loader)):
 
         # move to device
         verts = verts.to(device)
@@ -186,11 +187,13 @@ def train_epoch():
         fns += this_fns.cpu()
 
         # step the optimizer
-        optimizer.step()
+        if (i+1) % pseudo_batch_size == 0:
+            optimizer.step()
+            optimizer.zero_grad()
 
     ious = tps / (tps+fps+fns)
 
-    return total_loss, np.insert(ious, 0, ious[1:].mean())
+    return total_loss/len(train_loader), np.insert(ious, 0, ious[1:].mean())
 
 
 
@@ -253,7 +256,7 @@ def test(save=False):
 
     ious = tps / (tps+fps+fns)
 
-    return total_loss, np.insert(ious, 0, ious[1:].mean())
+    return total_loss/len(test_loader), np.insert(ious, 0, ious[1:].mean())
 
 
 
