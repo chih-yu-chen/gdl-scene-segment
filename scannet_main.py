@@ -143,6 +143,13 @@ def train_epoch():
 
     for i, (verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _) in enumerate(tqdm(train_loader)):
 
+        # augmentation
+        if augment_random_rotate:
+            verts = utils.random_rotate_points_z(verts)
+        verts = utils.random_translate(verts, scale=1)
+        verts = utils.random_flip(verts)
+        verts = utils.random_scale(verts, max=10)
+
         # move to device
         verts = verts.to(device)
         faces = faces.to(device)
@@ -155,12 +162,10 @@ def train_epoch():
         gradY = gradY.to(device)
         labels = labels.to(device)
         
-        # randomly rotate positions
-        if augment_random_rotate:
-            verts = utils.random_rotate_points_z(verts)
-
         # rgb features
         if with_rgb:
+            rgb = rgb / 255
+            rgb = utils.random_rgb_jitter(rgb, scale=0.05)
             rgb = rgb.to(device)
 
         # construct features
