@@ -36,10 +36,10 @@ def random_flip(pts, prob=0.95):
 
     return pts
 
-def random_scale(pts, max=50, prob=0.95):
+def random_scale(pts, max_scale=50, prob=0.95):
 
     if np.random.rand() < prob:
-        scale = np.random.rand() * max
+        scale = np.random.rand() * max_scale
         pts *= scale
 
     return pts

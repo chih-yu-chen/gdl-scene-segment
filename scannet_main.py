@@ -50,9 +50,10 @@ k_eig = 128
 
 # training settings
 train = not args.evaluate
-n_epoch = 25
+n_epoch = 100
 pseudo_batch_size = 16
 lr = 1e-3
+lr_step_size = 50
 augment_random_rotate = (input_features == 'xyz') | (input_features == 'xyzrgb')
 with_rgb = (input_features == 'xyzrgb')
 with_gradient_rotations = not args.without_gradient_rotations
@@ -119,7 +120,7 @@ if not train:
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # DiffusionNet human segmentation
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=13, gamma=0.5, verbose=True)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
 # PicassoNet++ 
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
 # VMNet & DGNet
@@ -148,7 +149,7 @@ def train_epoch():
             verts = utils.random_rotate_points_z(verts)
         verts = utils.random_translate(verts, scale=1)
         verts = utils.random_flip(verts)
-        verts = utils.random_scale(verts, max=10)
+        verts = utils.random_scale(verts, max_scale=10)
 
         # move to device
         verts = verts.to(device)
@@ -230,6 +231,7 @@ def test(save=False):
             
             # rgb features
             if with_rgb:
+                rgb = rgb / 255
                 rgb = rgb.to(device)
 
             # construct features
