@@ -50,10 +50,11 @@ k_eig = 128
 
 # training settings
 train = not args.evaluate
-n_epoch = 100
+n_epoch = 200
 pseudo_batch_size = 16
 lr = 1e-3
 lr_step_size = 50
+checkpt_every = 10
 augment_random_rotate = (input_features == 'xyz') | (input_features == 'xyzrgb')
 with_rgb = (input_features == 'xyzrgb')
 with_gradient_rotations = not args.without_gradient_rotations
@@ -71,8 +72,7 @@ op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
 model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
 model_dir.mkdir(parents=True, exist_ok=True)
-pretrain_path = Path(model_dir, f"scannet_semseg_{input_features}.pth")
-model_save_path = pretrain_path
+pretrain_path = Path(model_dir, "scannet_semseg.pth")
 pred_dir = Path(data_dir, "preds", experiment)
 pred_dir.mkdir(parents=True, exist_ok=True)
 
@@ -149,7 +149,7 @@ def train_epoch():
             verts = utils.random_rotate_points_z(verts)
         verts = utils.random_translate(verts, scale=1)
         verts = utils.random_flip(verts)
-        verts = utils.random_scale(verts, max_scale=10)
+        verts = utils.random_scale(verts, max_scale=50)
 
         # move to device
         verts = verts.to(device)
@@ -260,7 +260,7 @@ def test(save=False):
             if save:
                 pred_labels = test_dataset.classes[pred_labels.cpu()]
                 np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
-
+            
     ious = tps / (tps+fps+fns)
 
     return total_loss/len(test_loader), np.insert(ious, 0, ious[1:].mean())
@@ -269,7 +269,7 @@ def test(save=False):
 
 # actual running
 torch.set_printoptions(sci_mode=False)
-filestem = model_save_path.parent/model_save_path.stem
+filestem = model_dir/"scannet_semseg"
 
 if train:
 
@@ -297,9 +297,13 @@ if train:
         with open(str(filestem)+"_loss.csv", 'a') as f:
             f.write(str(train_loss)+",")
             f.write(str(test_loss)+"\n")
+        
+        if (epoch+1) % checkpt_every == 0:
+            torch.save(model.state_dict(), f"{filestem}_{epoch+1}.pth")
+            print(f" ==> model checkpoint saved to {filestem}_{epoch+1}.pth")
 
-    torch.save(model.state_dict(), str(model_save_path))
-    print(f" ==> saving last model to {model_save_path}")
+    torch.save(model.state_dict(), f"{filestem}.pth")
+    print(f" ==> saving last model to {filestem}.pth")
 
 test_loss, test_ious = test(save=True)
 print(f"Overall Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")
