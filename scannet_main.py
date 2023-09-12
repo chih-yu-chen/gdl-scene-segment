@@ -11,7 +11,8 @@ sys.path.append(str(pkg_path))
 import diffusion_net
 from scannet_dataset import ScanNetDataset
 import utils
-
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
@@ -120,12 +121,12 @@ if not train:
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # DiffusionNet human segmentation
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
 # PicassoNet++ 
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
 # VMNet & DGNet
-# lr_lambda = lambda epoch: (1 - epoch/n_epoch) ** 0.9
-# scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
+lr_lambda = lambda epoch: (1 - epoch/n_epoch) ** 0.9
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
 
 
 
@@ -187,10 +188,10 @@ def train_epoch():
         
         # track accuracy
         pred_labels = torch.max(preds, dim=1).indices
-        this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
-        tps += this_tps.cpu()
-        fps += this_fps.cpu()
-        fns += this_fns.cpu()
+        this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
+        tps += this_tps
+        fps += this_fps
+        fns += this_fns
 
         # step the optimizer
         if (i+1) % pseudo_batch_size == 0:
@@ -251,10 +252,10 @@ def test(save=False):
 
             # track accuracy
             pred_labels = torch.max(preds, dim=1).indices
-            this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class, device)
-            tps += this_tps.cpu()
-            fps += this_fps.cpu()
-            fns += this_fns.cpu()
+            this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
+            tps += this_tps
+            fps += this_fps
+            fns += this_fns
 
             # save prediction
             if save:

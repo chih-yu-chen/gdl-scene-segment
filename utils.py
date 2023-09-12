@@ -53,9 +53,13 @@ def random_rgb_jitter(rgb, scale=0.05, prob=0.95):
 
     return rgb
 
-def get_ious(preds, labels, n_class, device):
+def get_ious(preds, labels, n_class):
 
-    mcm = MulticlassConfusionMatrix(n_class).to(device)
+    mcm = MulticlassConfusionMatrix(n_class)
+    if preds.device != "cpu":
+        preds = preds.cpu()
+    if labels.device != "cpu":
+        labels = labels.cpu()
     mcm.update(preds, labels)
     mcm_results = mcm.compute()
     tps = mcm_results.diagonal()
