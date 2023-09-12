@@ -24,8 +24,8 @@ class ScanNetDataset(Dataset):
         self.with_rgb = with_rgb
         self.k_eig = k_eig 
         self.op_cache_dir = Path(op_cache_dir)
-        self.classes = np.asarray([0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
-        self.label_map = np.zeros(41, dtype=np.int8)
+        self.classes = np.asarray([1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
+        self.label_map = np.ones(41, dtype=np.int8) * -100
         np.put(self.label_map, self.classes, np.arange(self.classes.size))
 
         # load train test split

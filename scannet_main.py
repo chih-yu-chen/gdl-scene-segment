@@ -35,8 +35,8 @@ else:
 
 
 # task settings
-n_class = 21
-class_names = "mIoU,none,\
+n_class = 20
+class_names = "mIoU,\
 wall,floor,cabinet,bed,chair,\
 sofa,table,door,window,bookshelf,\
 picture,counter,desk,curtain,refridgerator,\
