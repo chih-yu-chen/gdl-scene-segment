@@ -69,7 +69,6 @@ if args.machine == "room":
 elif args.machine == "hal":
     repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
     data_dir = "/shared/scannet"
-cache_dir = Path(data_dir, "diffusion-net", "cache")
 op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
 model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
@@ -81,11 +80,11 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, cache_dir=cache_dir, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, cache_dir=cache_dir, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
