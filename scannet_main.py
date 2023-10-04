@@ -69,6 +69,7 @@ if args.machine == "room":
 elif args.machine == "hal":
     repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
     data_dir = "/shared/scannet"
+cache_dir = Path(data_dir, "diffusion-net", "cache")
 op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
 model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
@@ -80,11 +81,11 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, cache_dir=cache_dir, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, cache_dir=cache_dir, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
@@ -125,7 +126,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # PicassoNet++ 
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
 # VMNet & DGNet
-lr_lambda = lambda epoch: (1 - epoch/n_epoch) ** 0.9
+lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
 
 
@@ -166,7 +167,6 @@ def train_epoch():
         
         # rgb features
         if with_rgb:
-            rgb = rgb / 255
             rgb = utils.random_rgb_jitter(rgb, scale=0.05)
             rgb = rgb.to(device)
 
@@ -232,7 +232,6 @@ def test(save=False):
             
             # rgb features
             if with_rgb:
-                rgb = rgb / 255
                 rgb = rgb.to(device)
 
             # construct features
