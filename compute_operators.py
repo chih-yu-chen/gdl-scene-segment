@@ -36,12 +36,12 @@ test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir,
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=False, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
-train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=None, shuffle=False)
 
 
 
 # compute operators and store in op_cache_dir
-for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(test_loader):
-    pass
-for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(train_loader):
-    pass
+for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(test_loader):
+    continue
+for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(train_loader):
+    continue
