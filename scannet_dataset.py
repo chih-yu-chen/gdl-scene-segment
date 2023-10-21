@@ -55,7 +55,7 @@ class ScanNetDataset(Dataset):
             mesh_path = self.data_dir / "scans" / scene / f"{scene}_vh_clean_2.ply"
         verts, faces = pp3d.read_mesh(mesh_path.as_posix())
         verts = torch.tensor(np.ascontiguousarray(verts)).float()
-        faces = torch.tensor(np.ascontiguousarray(faces))
+        faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
 
         # center and unit scale
         verts = diffusion_net.geometry.normalize_positions(verts)
