@@ -80,7 +80,7 @@ class ScanNetDataset(Dataset):
 
         # load idx for referenced vertices
         if not self.preprocess == "raw":
-            idx_path = self.train_dir / "idx" / f"{scene}_idx.txt"
+            idx_path = self.train_dir / "idx" / f"{scene}_referenced_idx.txt"
             ref_idx = np.loadtxt(idx_path, delimiter=',', dtype=np.int64)
         else:
             ref_idx = np.arange(verts.shape[0], dtype=np.int64)
