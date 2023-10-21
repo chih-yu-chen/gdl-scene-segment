@@ -143,7 +143,7 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _) in enumerate(tqdm(train_loader)):
+    for i, (verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _, ref_idx) in enumerate(tqdm(train_loader)):
 
         # augmentation
         if augment_random_rotate:
@@ -186,7 +186,9 @@ def train_epoch():
         loss.backward()
         
         # track accuracy
-        pred_labels = torch.max(preds, dim=1).indices
+        pred_labels = torch.argmax(preds.cpu(), dim=1)
+        pred_labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, pred_labels)
+        labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, labels.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
         tps += this_tps
         fps += this_fps
@@ -215,7 +217,7 @@ def test(save=False):
 
     with torch.no_grad():
     
-        for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(test_loader):
+        for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(test_loader):
 
             # move to device
             verts = verts.to(device)
@@ -249,7 +251,9 @@ def test(save=False):
             total_loss += loss.item()
 
             # track accuracy
-            pred_labels = torch.max(preds, dim=1).indices
+            pred_labels = torch.argmax(preds.cpu(), dim=1)
+            pred_labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, pred_labels)
+            labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, labels.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
             tps += this_tps
             fps += this_fps

@@ -6,7 +6,6 @@ import torch
 from torch.utils.data import Dataset
 
 import potpourri3d as pp3d
-from plyfile import PlyData
 
 pkg_path = Path(__file__).parent/"diffusion-net"/"src"
 sys.path.append(str(pkg_path))
@@ -16,11 +15,13 @@ import diffusion_net
 
 class ScanNetDataset(Dataset):
 
-    def __init__(self, train, repo_dir, data_dir, with_rgb=False, k_eig=128, op_cache_dir=None):
+    def __init__(self, train, repo_dir, data_dir, preprocess, with_rgb=False, k_eig=128, op_cache_dir=None):
 
         self.train = train
         self.repo_dir = Path(repo_dir)
         self.data_dir = Path(data_dir)
+        self.train_dir = self.data_dir / preprocess
+        self.preprocess = preprocess
         self.with_rgb = with_rgb
         self.k_eig = k_eig 
         self.op_cache_dir = Path(op_cache_dir)
@@ -47,13 +48,9 @@ class ScanNetDataset(Dataset):
 
         scene = self.scene_list[idx]
 
-        # get mesh and label paths
-        train_dir = self.data_dir/"scans"
-        mesh_path = train_dir/scene/(scene+"_vh_clean_2.ply")
-        label_path = train_dir/scene/(scene+"_vh_clean_2.labels.ply")
-
         # load mesh
-        verts, faces = pp3d.read_mesh(str(mesh_path))
+        mesh_path = self.train_dir / f"{scene}_vh_clean_2.ply"
+        verts, faces = pp3d.read_mesh(mesh_path.as_posix())
         verts = torch.tensor(np.ascontiguousarray(verts)).float()
         faces = torch.tensor(np.ascontiguousarray(faces))
 
@@ -63,7 +60,7 @@ class ScanNetDataset(Dataset):
         # load rgb
         rgb = None
         if self.with_rgb:
-            rgb_path = self.data_dir/"rgb"/f"{scene}_rgb.txt"
+            rgb_path = self.train_dir / "rgb" / f"{scene}_rgb.txt"
             rgb = np.loadtxt(rgb_path, delimiter=',')
             rgb /= 255.
             rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
@@ -72,10 +69,17 @@ class ScanNetDataset(Dataset):
         frames, massvec, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
 
         # load labels
-        with open(label_path, 'rb') as f:
-            plydata = PlyData.read(f)
-        labels = plydata['vertex'].data['label']
+        label_path = self.train_dir / "labels" / f"{scene}_labels.txt"
+        labels = np.loadtxt(label_path, delimiter=',')
         labels = self.label_map[labels]
         labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
 
-        return verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene
+        # load idx for referenced vertices
+        if not self.preprocess == "raw":
+            idx_path = self.train_dir / "idx" / f"{scene}_idx.txt"
+            ref_idx = np.loadtxt(idx_path, delimiter=',')
+        else:
+            ref_idx = np.arange(verts.shape[0])
+        ref_idx = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+
+        return verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene, ref_idx
