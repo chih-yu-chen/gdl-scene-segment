@@ -64,10 +64,10 @@ with_gradient_rotations = not args.without_gradient_rotations
 # paths
 experiment = args.experiment
 if args.machine == "room":
-    repo_dir = "/home/cychen/Documents/GDL-scene-segment/ScanNet"
+    repo_dir = "/home/cychen/Documents/gdl-scene-segment/ScanNet"
     data_dir = "/media/cychen/HDD/scannet"
 elif args.machine == "hal":
-    repo_dir = "/home/chihyu/GDL-scene-segment/ScanNet"
+    repo_dir = "/home/chihyu/gdl-scene-segment/ScanNet"
     data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -80,11 +80,11 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess="raw", k_eig=k_eig, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess="raw", k_eig=k_eig, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
@@ -187,8 +187,8 @@ def train_epoch():
         
         # track accuracy
         pred_labels = torch.argmax(preds.cpu(), dim=1)
-        pred_labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, pred_labels)
-        labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, labels.cpu())
+        pred_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, pred_labels)
+        labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
         tps += this_tps
         fps += this_fps
@@ -252,8 +252,8 @@ def test(save=False):
 
             # track accuracy
             pred_labels = torch.argmax(preds.cpu(), dim=1)
-            pred_labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, pred_labels)
-            labels = (-100 * torch.ones(ref_idx.max())).long().put_(ref_idx, labels.cpu())
+            pred_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, pred_labels)
+            labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
             tps += this_tps
             fps += this_fps

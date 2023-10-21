@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument("--raw", action="store_true", help="only extract rgb and labels from raw")
     args = parser.parse_args()
 
-    if args.machine == "roometric":
+    if args.machine == "room":
         mesh_dir = Path("/media/cychen/HDD/scannet/scans")
     elif args.machine == "hal":
         mesh_dir = Path("/shared/scannet/scans")
