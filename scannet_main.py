@@ -21,6 +21,7 @@ parser.add_argument("--gpu", type=str, default="0", help="which gpu")
 parser.add_argument("--cpu", action="store_true", help="use cpu instead of gpu")
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
 parser.add_argument("--input_features", type=str, default = 'xyz', help="'xyz', 'xyzrgb', or 'hks', default: xyz")
+parser.add_argument("--preprocess", type=str, help="which preprocessing", required=True)
 parser.add_argument("--without_gradient_rotations", action="store_true", help="without learned gradient rotations")
 parser.add_argument("--experiment", type=str, help="experiment name", required=True)
 args = parser.parse_args()
@@ -80,20 +81,12 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess="raw", k_eig=k_eig, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess="raw", k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
-
-
-
-# # precompute operators and store in op_cache_dir
-# for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(test_loader):
-#     pass
-# for verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene in tqdm(train_loader):
-#     pass
 
 
 
