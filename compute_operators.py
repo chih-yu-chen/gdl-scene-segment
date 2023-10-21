@@ -20,7 +20,6 @@ k_eig = 128
 
 
 # paths
-experiment = args.experiment
 if args.machine == "room":
     repo_dir = "/home/cychen/Documents/gdl-scene-segment/ScanNet"
     data_dir = "/media/cychen/HDD/scannet"
