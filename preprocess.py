@@ -52,10 +52,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--machine", type=str, help="which machine", required=True)
     parser.add_argument("--dst", type=str, help="destination directory", required=True)
-    parser.add_argument("--test", action="store_true", help="preprocess test set")
-    parser.add_argument("--raw", action="store_true", help="only extract rgb and labels from raw")
+    parser.add_argument("--test", action="store_true", help="preprocess the test set, else preprocess the training and validation sets")
+    parser.add_argument("--raw", action="store_true", help="do not preprocess, only extract rgb and labels from raw")
+    parser.add_argument("--remove_disconnection", action="store_true", help="remove disconnected components, leaving only one component per mesh")
+    parser.add_argument("--fill_holes", action="store", type=float, dest="hole_size", default=0, help="fill holes with shorter radius than the provided value")
     args = parser.parse_args()
 
+    # set paths
     if args.machine == "room":
         mesh_dir = Path("/media/cychen/HDD/scannet/scans")
     elif args.machine == "hal":
@@ -68,32 +71,42 @@ if __name__ == '__main__':
     (dst_dir / "rgb").mkdir(parents=True, exist_ok=True)
     (dst_dir / "labels").mkdir(parents=True, exist_ok=True)
 
-    if not args.test:
+    # read scene list
+    if args.test:
+        split_test = "ScanNet/Tasks/Benchmark/scannetv2_test.txt"
+        with open(split_test, 'r') as f:
+            scenes = f.read().splitlines()
+    else:
         split_train = "ScanNet/Tasks/Benchmark/scannetv2_train.txt"
         split_val = "ScanNet/Tasks/Benchmark/scannetv2_val.txt"
         with open(split_train, 'r') as f:
             scenes = f.read().splitlines()
         with open(split_val, 'r') as f:
             scenes.extend(f.read().splitlines())
-    else:
-        split_test = "ScanNet/Tasks/Benchmark/scannetv2_test.txt"
-        with open(split_test, 'r') as f:
-            scenes = f.read().splitlines()
 
+    # preprocess scenes
     for scene in tqdm(scenes):
 
-        path = mesh_dir / scene / f"{scene}_vh_clean_2.ply"
-        mesh = o3d.io.read_triangle_mesh(path.as_posix())
+        mesh_path = mesh_dir / scene / f"{scene}_vh_clean_2.ply"
+        mesh = o3d.io.read_triangle_mesh(mesh_path.as_posix())
 
-        if not args.raw:
-            mesh = mesh.remove_non_manifold_edges()
-            mesh = remove_disconnected_components(mesh)
-            ref_idx = get_referenced_idx(mesh)
-            mesh = mesh.remove_unreferenced_vertices()
-        else:
+        if args.raw:
             ref_idx = np.arange(np.asarray(mesh.vertices).shape[0])
 
+        else:
+            mesh = mesh.remove_non_manifold_edges()
+
+            if args.remove_disconnection:
+                mesh = remove_disconnected_components(mesh)
+
+            if args.hole_size > 0:
+                mesh = fill_holes(mesh, args.hole_size)
+
+            ref_idx = get_referenced_idx(mesh)
+            mesh = mesh.remove_unreferenced_vertices()
+
         rgb = get_referenced_rgb(mesh)
+
         if not args.test:
             labels = get_referenced_labels(mesh_dir, scene, ref_idx)
 
