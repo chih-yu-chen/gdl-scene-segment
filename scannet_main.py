@@ -116,10 +116,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # DiffusionNet human segmentation
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
 # PicassoNet++ 
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
 # VMNet & DGNet
-lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
+# lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
+# scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
 
 
 
