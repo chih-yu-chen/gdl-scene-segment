@@ -23,7 +23,7 @@ class ScanNetDataset(Dataset):
         self.train_dir = self.data_dir / preprocess
         self.preprocess = preprocess
         self.with_rgb = with_rgb
-        self.k_eig = k_eig 
+        self.k_eig = k_eig
         self.op_cache_dir = Path(op_cache_dir) / preprocess
         self.op_cache_dir.mkdir(parents=True, exist_ok=True)
         self.classes = np.asarray([1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])

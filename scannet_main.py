@@ -52,7 +52,7 @@ k_eig = 128
 
 # training settings
 train = not args.evaluate
-n_epoch = 200
+n_epoch = 50
 pseudo_batch_size = 16
 lr = 1e-3
 lr_step_size = 50
@@ -254,7 +254,9 @@ def test(save=False):
 
             # save prediction
             if save:
-                pred_labels = test_dataset.classes[pred_labels.cpu()]
+                pred_labels[pred_labels == -100] = -1
+                test_dataset.classes = np.append(test_dataset, [0])
+                pred_labels = test_dataset.classes[pred_labels]
                 np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
             
     ious = tps / (tps+fps+fns)
