@@ -18,4 +18,5 @@ for i in "${VALSET[@]}"; do
 	PATH_MESH="/media/cychen/HDD/scannet/scans/"$i"/"$i"_vh_clean_2.ply"
 	PATH_OUT="vis/preds/"$RUN_NAME"/"$i"_labels.ply"
 	python2 ScanNet/BenchmarkScripts/3d_helpers/visualize_labels_on_mesh.py --pred_file $PATH_PRED --mesh_file $PATH_MESH --output_file $PATH_OUT
+	
 done
