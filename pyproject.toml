@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "gdl-scene-segment"
+version = "0.1.0"
+description = ""
+authors = ["Chih-Yu Chen <chihyuchentw@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.9"
+joblib = "^1.0"
+matplotlib = "^3.5"
+numpy = "^1.20"
+pillow = "^8.2"
+plyfile = "^0"
+polyscope = "^1"
+potpourri3d = "^1"
+python-utils = "^3"
+robust-laplacian = "^0"
+scikit-learn = "^1.0"
+six = "^1.16"
+scipy = "^1.6"
+threadpoolctl = "^3"
+torch = "^2"
+torchaudio = "^2"
+torchvision = "^0"
+tqdm = "^4.64"
+typing-extensions = "^4"
+pylint = "^2.16"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
