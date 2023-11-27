@@ -1,12 +1,13 @@
-# 3rd-party repos
+# 3rd-party repos and scripts
 diffusion-net/
-ScanNet/
+vcglib/
+gdl_scene_segment/datasets/downloads/download_mp.py
+gdl_scene_segment/datasets/downloads/download-scannet.py
 
 # local records
-experiments_baseline/
-colab/
-pretrained_models/
+experiments/
 vis/
+gdl_scene_segment/colab
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

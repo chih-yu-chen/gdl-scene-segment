@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 import potpourri3d as pp3d
 
-pkg_path = Path(__file__).parent/"diffusion-net"/"src"
+pkg_path = Path(__file__).parents[1]/"diffusion-net"/"src"
 sys.path.append(str(pkg_path))
 import diffusion_net
 
@@ -31,7 +31,7 @@ class ScanNetDataset(Dataset):
         np.put(self.label_map, self.classes, np.arange(self.classes.size))
 
         # load train test split
-        split_dir = self.repo_dir/"Tasks"/"Benchmark/"
+        split_dir = self.repo_dir/"Tasks"/"Benchmark/300000"
         if self.train:
             with open(split_dir/"scannetv2_train.txt", 'r') as f:
                 self.scene_list = f.read().splitlines()
@@ -51,15 +51,17 @@ class ScanNetDataset(Dataset):
 
         # load mesh
         if not self.preprocess == "raw":
-            mesh_path = self.train_dir / f"{scene}_vh_clean_2.ply"
+            mesh_path = self.train_dir / "scenes" / f"{scene}_vh_clean_2.ply"
         else:
             mesh_path = self.data_dir / "scans" / scene / f"{scene}_vh_clean_2.ply"
         verts, faces = pp3d.read_mesh(mesh_path.as_posix())
         verts = torch.tensor(np.ascontiguousarray(verts)).float()
         faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
 
-        # center and unit scale
-        verts = diffusion_net.geometry.normalize_positions(verts)
+        # unit scale
+        scale = np.linalg.norm(verts, axis=-1).max()
+        verts = verts / scale
+        # verts = diffusion_net.geometry.normalize_positions(verts)
 
         # load rgb
         rgb = None

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import sys
-pkg_path = Path(__file__).parent/"diffusion-net"/"src"
+pkg_path = Path(__file__).parents[1]/"diffusion-net"/"src"
 sys.path.append(str(pkg_path))
 import diffusion_net
 from scannet_dataset import ScanNetDataset
@@ -52,8 +52,8 @@ k_eig = 128
 
 # training settings
 train = not args.evaluate
-n_epoch = 50
-pseudo_batch_size = 16
+n_epoch = 200
+pseudo_batch_size = 8
 lr = 1e-3
 lr_step_size = 50
 checkpt_every = 10
@@ -72,9 +72,9 @@ elif args.machine == "hal":
     data_dir = "/shared/scannet"
 op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
 op_cache_dir.mkdir(parents=True, exist_ok=True)
-model_dir = Path(repo_dir, "..", "pretrained_models", experiment)
+model_dir = Path(repo_dir, "..", "pretrained_models", experiment).resolve()
 model_dir.mkdir(parents=True, exist_ok=True)
-pretrain_path = Path(model_dir, "scannet_semseg.pth")
+pretrain_path = Path(model_dir, "scannet_semseg.pt")
 pred_dir = Path(data_dir, "preds", experiment)
 pred_dir.mkdir(parents=True, exist_ok=True)
 
@@ -273,9 +273,9 @@ if train:
 
     print("Training...")
 
-    with open(str(filestem)+"_train_ious.csv", 'w') as f:
+    with open(str(filestem)+"_train_iou.csv", 'w') as f:
         f.write(class_names)
-    with open(str(filestem)+"_test_ious.csv", 'w') as f:
+    with open(str(filestem)+"_test_iou.csv", 'w') as f:
         f.write(class_names)
 
     for epoch in range(n_epoch):
@@ -288,20 +288,20 @@ if train:
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]}\n")
         print(f"Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")
 
-        with open(str(filestem)+"_train_ious.csv", 'ab') as f:
+        with open(str(filestem)+"_train_iou.csv", 'ab') as f:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
-        with open(str(filestem)+"_test_ious.csv", 'ab') as f:
+        with open(str(filestem)+"_test_iou.csv", 'ab') as f:
             np.savetxt(f, test_ious[np.newaxis,:], delimiter=',')
         with open(str(filestem)+"_loss.csv", 'a') as f:
             f.write(str(train_loss)+",")
             f.write(str(test_loss)+"\n")
         
         if (epoch+1) % checkpt_every == 0:
-            torch.save(model.state_dict(), f"{filestem}_{epoch+1}.pth")
-            print(f" ==> model checkpoint saved to {filestem}_{epoch+1}.pth")
+            torch.save(model.state_dict(), f"{filestem}_{epoch+1}.pt")
+            print(f" ==> model checkpoint saved to {filestem}_{epoch+1}.pt")
 
-    torch.save(model.state_dict(), f"{filestem}.pth")
-    print(f" ==> saving last model to {filestem}.pth")
+    torch.save(model.state_dict(), f"{filestem}.pt")
+    print(f" ==> saving last model to {filestem}.pt")
 
 test_loss, test_ious = test(save=True)
 print(f"Overall Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")

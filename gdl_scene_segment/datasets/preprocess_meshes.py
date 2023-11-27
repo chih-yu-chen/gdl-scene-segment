@@ -52,10 +52,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--machine", type=str, help="which machine", required=True)
     parser.add_argument("--dst", type=str, help="destination directory", required=True)
-    parser.add_argument("--test", action="store_true", help="preprocess the test set, else preprocess the training and validation sets")
-    parser.add_argument("--raw", action="store_true", help="do not preprocess, only extract rgb and labels from raw")
-    parser.add_argument("--remove_disconnection", action="store_true", help="remove disconnected components, leaving only one component per mesh")
-    parser.add_argument("--fill_holes", action="store", type=float, dest="hole_size", default=0, help="fill holes with shorter radius than the provided value")
+    parser.add_argument("--test", action="store_true",
+                        help="preprocess the test set, else preprocess the training and validation sets")
+    parser.add_argument("--center", action="store_true",
+                        help="center the meshes, extract rgb and labels")
+    parser.add_argument("--remove_disconnection", action="store_true",
+                        help="remove disconnected components, leaving only one component per mesh")
+    parser.add_argument("--fill_holes", action="store", type=float, dest="hole_size", default=0,
+                        help="fill holes with shorter radius than the provided value")
     args = parser.parse_args()
 
     # set paths
@@ -67,54 +71,54 @@ if __name__ == '__main__':
         mesh_dir = Path(mesh_dir.as_posix() + "_test")
 
     dst_dir = Path(args.dst)
+    (dst_dir / "scenes").mkdir(parents=True, exist_ok=True)
     (dst_dir / "idx").mkdir(parents=True, exist_ok=True)
     (dst_dir / "rgb").mkdir(parents=True, exist_ok=True)
     (dst_dir / "labels").mkdir(parents=True, exist_ok=True)
 
     # read scene list
     if args.test:
-        split_test = "ScanNet/Tasks/Benchmark/scannetv2_test.txt"
+        split_test = "../ScanNet/Tasks/Benchmark/scannetv2_test.txt"
         with open(split_test, 'r') as f:
             scenes = f.read().splitlines()
     else:
-        split_train = "ScanNet/Tasks/Benchmark/scannetv2_train.txt"
-        split_val = "ScanNet/Tasks/Benchmark/scannetv2_val.txt"
+        split_train = "../ScanNet/Tasks/Benchmark/scannetv2_train.txt"
+        split_val = "../ScanNet/Tasks/Benchmark/scannetv2_val.txt"
         with open(split_train, 'r') as f:
             scenes = f.read().splitlines()
         with open(split_val, 'r') as f:
             scenes.extend(f.read().splitlines())
+
+    remove_disconnection = True if args.hole_size > 0 else args.remove_disconnection
+    center = True if remove_disconnection else args.center
 
     # preprocess scenes
     for scene in tqdm(scenes):
 
         mesh_path = mesh_dir / scene / f"{scene}_vh_clean_2.ply"
         mesh = o3d.io.read_triangle_mesh(mesh_path.as_posix())
+        ref_idx = np.arange(np.asarray(mesh.vertices).shape[0])
 
-        if args.raw:
-            ref_idx = np.arange(np.asarray(mesh.vertices).shape[0])
+        means = mesh.get_center()
+        mesh = mesh.translate(-means)
 
-        else:
+        if remove_disconnection:
+
             mesh = mesh.remove_non_manifold_edges()
-
-            if args.remove_disconnection:
-                mesh = remove_disconnected_components(mesh)
+            mesh = remove_disconnected_components(mesh)
 
             if args.hole_size > 0:
                 mesh = fill_holes(mesh, args.hole_size)
 
             ref_idx = get_referenced_idx(mesh)
+            np.savetxt(dst_dir / "idx" / f"{scene}_referenced_idx.txt", ref_idx, fmt='%d', delimiter=',')
             mesh = mesh.remove_unreferenced_vertices()
 
+        o3d.io.write_triangle_mesh((dst_dir / "scenes" / f"{scene}_vh_clean_2.ply").as_posix(), mesh)
+
         rgb = get_referenced_rgb(mesh)
-
-        if not args.test:
-            labels = get_referenced_labels(mesh_dir, scene, ref_idx)
-
-        if not args.raw:
-            o3d.io.write_triangle_mesh((dst_dir / f"{scene}_vh_clean_2.ply").as_posix(), mesh)
-            np.savetxt(dst_dir / "idx" / f"{scene}_referenced_idx.txt", ref_idx, fmt='%d', delimiter=',')
-
         np.savetxt(dst_dir / "rgb" / f"{scene}_rgb.txt", rgb, fmt='%d', delimiter=',')
 
         if not args.test:
+            labels = get_referenced_labels(mesh_dir, scene, ref_idx)
             np.savetxt(dst_dir / "labels" / f"{scene}_labels.txt", labels, fmt='%d', delimiter=',')
