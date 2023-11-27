@@ -9,21 +9,29 @@ import sys
 pkg_path = Path(__file__).parents[1]/"diffusion-net"/"src"
 sys.path.append(str(pkg_path))
 import diffusion_net
-from scannet_dataset import ScanNetDataset
-import utils
+from datasets.scannet_dataset import ScanNetDataset
+from model import utils
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
-parser.add_argument("--machine", type=str, help="which machine", required=True)
-parser.add_argument("--gpu", type=str, default="0", help="which gpu")
-parser.add_argument("--cpu", action="store_true", help="use cpu instead of gpu")
-parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
-parser.add_argument("--input_features", type=str, default = 'xyz', help="'xyz', 'xyzrgb', or 'hks', default: xyz")
-parser.add_argument("--preprocess", type=str, help="which preprocessing", required=True)
-parser.add_argument("--without_gradient_rotations", action="store_true", help="without learned gradient rotations")
-parser.add_argument("--experiment", type=str, help="experiment name", required=True)
+parser.add_argument("--data_dir", type=str, required=True,
+                    help="directory to the ScanNet dataset")
+parser.add_argument("--gpu", type=str, default="0",
+                    help="which gpu")
+parser.add_argument("--cpu", action="store_true",
+                    help="use cpu instead of gpu")
+parser.add_argument("--evaluate", action="store_true",
+                    help="evaluate using the pretrained model")
+parser.add_argument("--input_features", type=str, default = 'xyz',
+                    help="'xyz', 'xyzrgb', or 'hks', default: xyz")
+parser.add_argument("--preprocess", type=str,
+                    help="which preprocessing", required=True)
+parser.add_argument("--without_gradient_rotations", action="store_true",
+                    help="without learned gradient rotations")
+parser.add_argument("--experiment", type=str, required=True,
+                    help="experiment name")
 args = parser.parse_args()
 
 
@@ -64,28 +72,23 @@ with_gradient_rotations = not args.without_gradient_rotations
 
 # paths
 experiment = args.experiment
-if args.machine == "room":
-    repo_dir = "/home/cychen/Documents/gdl-scene-segment/ScanNet"
-    data_dir = "/media/cychen/HDD/scannet"
-elif args.machine == "hal":
-    repo_dir = "/home/chihyu/gdl-scene-segment/ScanNet"
-    data_dir = "/shared/scannet"
-op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
+data_dir = Path(args.data_dir)
+op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
 op_cache_dir.mkdir(parents=True, exist_ok=True)
-model_dir = Path(repo_dir, "..", "pretrained_models", experiment).resolve()
-model_dir.mkdir(parents=True, exist_ok=True)
-pretrain_path = Path(model_dir, "scannet_semseg.pt")
-pred_dir = Path(data_dir, "preds", experiment)
+exp_dir = Path("..", "experiments", experiment).resolve()
+exp_dir.mkdir(parents=True, exist_ok=True)
+model_path = exp_dir/ "model.pt"
+pred_dir = exp_dir/ "preds"
 pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 
 # datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
+test_dataset = ScanNetDataset(train=False, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
@@ -106,8 +109,8 @@ model = model.to(device)
 
 # load the pretrained model
 if not train:
-    print(f"Loading pretrained model from: {pretrain_path}")
-    model.load_state_dict(torch.load(str(pretrain_path)))
+    print(f"Loading pretrained model from: {model_path}")
+    model.load_state_dict(torch.load(str(model_path)))
 
 
 
@@ -267,15 +270,14 @@ def test(save=False):
 
 # actual running
 torch.set_printoptions(sci_mode=False)
-filestem = model_dir/"scannet_semseg"
 
 if train:
 
     print("Training...")
 
-    with open(str(filestem)+"_train_iou.csv", 'w') as f:
+    with open(model_path.with_name("train_iou.csv"), 'w') as f:
         f.write(class_names)
-    with open(str(filestem)+"_test_iou.csv", 'w') as f:
+    with open(model_path.with_name("test_iou.csv"), 'w') as f:
         f.write(class_names)
 
     for epoch in range(n_epoch):
@@ -288,20 +290,20 @@ if train:
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]}\n")
         print(f"Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")
 
-        with open(str(filestem)+"_train_iou.csv", 'ab') as f:
+        with open(model_path.with_name("train_iou.csv"), 'ab') as f:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
-        with open(str(filestem)+"_test_iou.csv", 'ab') as f:
+        with open(model_path.with_name("test_iou.csv"), 'ab') as f:
             np.savetxt(f, test_ious[np.newaxis,:], delimiter=',')
-        with open(str(filestem)+"_loss.csv", 'a') as f:
+        with open(model_path.with_name("loss.csv"), 'a') as f:
             f.write(str(train_loss)+",")
             f.write(str(test_loss)+"\n")
         
         if (epoch+1) % checkpt_every == 0:
-            torch.save(model.state_dict(), f"{filestem}_{epoch+1}.pt")
-            print(f" ==> model checkpoint saved to {filestem}_{epoch+1}.pt")
+            torch.save(model.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
+            print(" ==> model checkpoint saved")
 
-    torch.save(model.state_dict(), f"{filestem}.pt")
-    print(f" ==> saving last model to {filestem}.pt")
+    torch.save(model.state_dict(), model_path)
+    print(" ==> last model saved")
 
 test_loss, test_ious = test(save=True)
 print(f"Overall Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")

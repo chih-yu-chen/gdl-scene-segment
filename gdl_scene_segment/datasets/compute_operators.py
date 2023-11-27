@@ -1,15 +1,23 @@
 import argparse
+import numpy as np
 from pathlib import Path
-from torch.utils.data import DataLoader
+import potpourri3d as pp3d
+import sys
+import torch
 from tqdm import tqdm
-from scannet_dataset import ScanNetDataset
+
+pkg_path = Path(__file__).parents[2]/ "diffusion-net"/ "src"
+sys.path.append(str(pkg_path))
+import diffusion_net
 
 
 
 # parse arguments outside python
 parser = argparse.ArgumentParser()
-parser.add_argument("--machine", type=str, help="which machine", required=True)
-parser.add_argument("--preprocess", type=str, help="which preprocessing", required=True)
+parser.add_argument("--data_dir", type=str, required=True,
+                    help="directory to the ScanNet dataset")
+parser.add_argument("--preprocess", type=str,
+                    help="which preprocessing", required=True)
 args = parser.parse_args()
 
 
@@ -17,31 +25,35 @@ args = parser.parse_args()
 # model settings
 k_eig = 128
 
-
-
 # paths
-if args.machine == "room":
-    repo_dir = "/home/cychen/Documents/gdl-scene-segment/ScanNet"
-    data_dir = "/media/cychen/HDD/scannet"
-elif args.machine == "hal":
-    repo_dir = "/home/chihyu/gdl-scene-segment/ScanNet"
-    data_dir = "/shared/scannet"
-op_cache_dir = Path(data_dir, "diffusion-net", f"op_cache_{k_eig}")
+data_dir = Path(args.data_dir)
+op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"/ args.preprocess
 op_cache_dir.mkdir(parents=True, exist_ok=True)
 
+# load splits
+split_dir = Path("splits")
+with open(split_dir/ "scannetv2_train.txt", 'r') as f:
+    scenes = f.read().splitlines()
+with open(split_dir/ "scannetv2_val.txt", 'r') as f:
+    scenes.extend(f.read().splitlines())
+with open(split_dir/ "scannetv2_test.txt", 'r') as f:
+    scenes.extend(f.read().splitlines())
 
 
-# datasets
-test_dataset = ScanNetDataset(train=False, repo_dir=repo_dir, data_dir=data_dir, with_rgb=False, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
-test_loader = DataLoader(test_dataset, batch_size=None)
 
-train_dataset = ScanNetDataset(train=True, repo_dir=repo_dir, data_dir=data_dir, with_rgb=False, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
-train_loader = DataLoader(train_dataset, batch_size=None, shuffle=False)
+# compute operators
+for scene in tqdm(scenes):
 
+    # load mesh
+    mesh_path = data_dir/ args.preprocess/ "scenes"/ f"{scene}_vh_clean_2.ply"
+    verts, faces = pp3d.read_mesh(mesh_path.as_posix())
+    verts = torch.tensor(np.ascontiguousarray(verts)).float()
+    faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
 
+    # unit scale
+    scale = np.linalg.norm(verts, axis=-1).max()
+    verts = verts / scale
+    # verts = diffusion_net.geometry.normalize_positions(verts)
 
-# compute operators and store in op_cache_dir
-for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(test_loader):
-    continue
-for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(train_loader):
-    continue
+    # precompute operators
+    _ = diffusion_net.geometry.get_operators(verts, faces, k_eig, op_cache_dir)

@@ -19,13 +19,6 @@ def remove_disconnected_components(mesh):
 
     return mesh
 
-def get_referenced_idx(mesh):
-    
-    triangles = np.asarray(mesh.triangles)
-
-    return np.unique(triangles.flatten())
-
-
 def fill_holes(mesh, hole_size):
 
     mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh)
@@ -34,24 +27,33 @@ def fill_holes(mesh, hole_size):
 
     return filled
 
+def get_referenced_idx(mesh):
+    
+    triangles = np.asarray(mesh.triangles)
+
+    return np.unique(triangles.flatten())
+
 def get_referenced_rgb(mesh):
 
     rgb = np.asarray(mesh.vertex_colors) * 255
 
     return rgb.astype(np.uint8)
 
-def get_referenced_labels(mesh_dir, scene, idx):
+def get_referenced_labels(mesh_path: Path, idx):
 
-    with open(mesh_dir / scene / f"{scene}_vh_clean_2.labels.ply", 'rb') as f:
+    with open(mesh_path.with_suffix(".labels.ply"), 'rb') as f:
         labels = PlyData.read(f)['vertex'].data['label']
 
     return labels[idx]
 
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--machine", type=str, help="which machine", required=True)
-    parser.add_argument("--dst", type=str, help="destination directory", required=True)
+    parser.add_argument("--data_dir", type=str, required=True,
+                        help="directory to the ScanNet dataset")
+    parser.add_argument("--dst", type=str, help="relative destination directory", required=True)
     parser.add_argument("--test", action="store_true",
                         help="preprocess the test set, else preprocess the training and validation sets")
     parser.add_argument("--center", action="store_true",
@@ -63,30 +65,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # set paths
-    if args.machine == "room":
-        mesh_dir = Path("/media/cychen/HDD/scannet/scans")
-    elif args.machine == "hal":
-        mesh_dir = Path("/shared/scannet/scans")
-    if args.test:
-        mesh_dir = Path(mesh_dir.as_posix() + "_test")
-
-    dst_dir = Path(args.dst)
-    (dst_dir / "scenes").mkdir(parents=True, exist_ok=True)
-    (dst_dir / "idx").mkdir(parents=True, exist_ok=True)
-    (dst_dir / "rgb").mkdir(parents=True, exist_ok=True)
-    (dst_dir / "labels").mkdir(parents=True, exist_ok=True)
+    data_dir = Path(args.data_dir)
+    dst_dir = data_dir/ args.dst
+    (dst_dir/ "scenes").mkdir(parents=True, exist_ok=True)
+    (dst_dir/ "idx").mkdir(parents=True, exist_ok=True)
+    (dst_dir/ "rgb").mkdir(parents=True, exist_ok=True)
+    (dst_dir/ "labels").mkdir(parents=True, exist_ok=True)
 
     # read scene list
+    split_dir = Path("splits")
     if args.test:
-        split_test = "../ScanNet/Tasks/Benchmark/scannetv2_test.txt"
-        with open(split_test, 'r') as f:
+        with open(split_dir/ "scannetv2_test.txt", 'r') as f:
             scenes = f.read().splitlines()
     else:
-        split_train = "../ScanNet/Tasks/Benchmark/scannetv2_train.txt"
-        split_val = "../ScanNet/Tasks/Benchmark/scannetv2_val.txt"
-        with open(split_train, 'r') as f:
+        with open(split_dir/ "scannetv2_train.txt", 'r') as f:
             scenes = f.read().splitlines()
-        with open(split_val, 'r') as f:
+        with open(split_dir/ "scannetv2_val.txt", 'r') as f:
             scenes.extend(f.read().splitlines())
 
     remove_disconnection = True if args.hole_size > 0 else args.remove_disconnection
@@ -95,7 +89,10 @@ if __name__ == '__main__':
     # preprocess scenes
     for scene in tqdm(scenes):
 
-        mesh_path = mesh_dir / scene / f"{scene}_vh_clean_2.ply"
+        if args.test:
+            mesh_path = data_dir/ "scans_test"/ scene/ f"{scene}_vh_clean_2.ply"
+        else:
+            mesh_path = data_dir/ "scans"/ scene/ f"{scene}_vh_clean_2.ply"
         mesh = o3d.io.read_triangle_mesh(mesh_path.as_posix())
         ref_idx = np.arange(np.asarray(mesh.vertices).shape[0])
 
@@ -111,14 +108,14 @@ if __name__ == '__main__':
                 mesh = fill_holes(mesh, args.hole_size)
 
             ref_idx = get_referenced_idx(mesh)
-            np.savetxt(dst_dir / "idx" / f"{scene}_referenced_idx.txt", ref_idx, fmt='%d', delimiter=',')
+            np.savetxt(dst_dir/ "idx"/ f"{scene}_referenced_idx.txt", ref_idx, fmt='%d', delimiter=',')
             mesh = mesh.remove_unreferenced_vertices()
 
-        o3d.io.write_triangle_mesh((dst_dir / "scenes" / f"{scene}_vh_clean_2.ply").as_posix(), mesh)
+        o3d.io.write_triangle_mesh((dst_dir/ "scenes"/ f"{scene}_vh_clean_2.ply").as_posix(), mesh)
 
         rgb = get_referenced_rgb(mesh)
-        np.savetxt(dst_dir / "rgb" / f"{scene}_rgb.txt", rgb, fmt='%d', delimiter=',')
+        np.savetxt(dst_dir/ "rgb"/ f"{scene}_rgb.txt", rgb, fmt='%d', delimiter=',')
 
         if not args.test:
-            labels = get_referenced_labels(mesh_dir, scene, ref_idx)
-            np.savetxt(dst_dir / "labels" / f"{scene}_labels.txt", labels, fmt='%d', delimiter=',')
+            labels = get_referenced_labels(mesh_path, ref_idx)
+            np.savetxt(dst_dir/ "labels"/ f"{scene}_labels.txt", labels, fmt='%d', delimiter=',')
