@@ -74,7 +74,7 @@ def vertex_clustering(in_path: Path,
                       old_verts: np.ndarray
                       ) -> tuple[np.ndarray, np.ndarray]:
 
-    os.system(f"../../vcglib/apps/sample/trimesh_clustering/trimesh_clustering \
+    os.system(f"../../app/vcglib/apps/sample/trimesh_clustering/trimesh_clustering \
               {in_path} {out_path} -s {voxel_size} > /dev/null")
     
     verts = np.asarray(o3d.io.read_triangle_mesh(out_path.as_posix()).vertices)
@@ -92,7 +92,7 @@ def quadric_error_metric(in_path:Path,
                          old_verts: np.ndarray
                          ) -> tuple[np.ndarray, np.ndarray]:
 
-    os.system(f"../../vcglib/apps/tridecimator/tridecimator \
+    os.system(f"../../app/vcglib/apps/tridecimator/tridecimator \
               {in_path} {out_path} {ratio} -On -C > /dev/null")
 
     verts = np.asarray(o3d.io.read_triangle_mesh(out_path.as_posix()).vertices)

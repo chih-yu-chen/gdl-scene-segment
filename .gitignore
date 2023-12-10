@@ -1,6 +1,5 @@
 # 3rd-party repos and scripts
 diffusion-net/
-vcglib/
 gdl_scene_segment/datasets/downloads/download_mp.py
 gdl_scene_segment/datasets/downloads/download-scannet.py
 
