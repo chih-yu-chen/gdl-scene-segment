@@ -56,8 +56,6 @@ if __name__ == '__main__':
     parser.add_argument("--dst", type=str, help="relative destination directory", required=True)
     parser.add_argument("--test", action="store_true",
                         help="preprocess the test set, else preprocess the training and validation sets")
-    parser.add_argument("--center", action="store_true",
-                        help="center the meshes, extract rgb and labels")
     parser.add_argument("--remove_disconnection", action="store_true",
                         help="remove disconnected components, leaving only one component per mesh")
     parser.add_argument("--fill_holes", action="store", type=float, dest="hole_size", default=0,
@@ -84,7 +82,6 @@ if __name__ == '__main__':
             scenes.extend(f.read().splitlines())
 
     remove_disconnection = True if args.hole_size > 0 else args.remove_disconnection
-    center = True if remove_disconnection else args.center
 
     # preprocess scenes
     for scene in tqdm(scenes):

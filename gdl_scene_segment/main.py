@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import sys
-pkg_path = Path(__file__).parents[1]/"diffusion-net"/"src"
+pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
 sys.path.append(str(pkg_path))
 import diffusion_net
 from datasets.scannet_dataset import ScanNetDataset
@@ -260,7 +260,7 @@ def test(save=False):
                 pred_labels[pred_labels == -100] = -1
                 test_dataset.classes = np.append(test_dataset, [0])
                 pred_labels = test_dataset.classes[pred_labels]
-                np.savetxt(pred_dir/f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
+                np.savetxt(pred_dir/ f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
             
     ious = tps / (tps+fps+fns)
 
