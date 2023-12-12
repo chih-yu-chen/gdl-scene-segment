@@ -139,7 +139,7 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, _, ref_idx) in enumerate(tqdm(train_loader)):
+    for i, (_, verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, ref_idx) in enumerate(tqdm(train_loader)):
 
         # augmentation
         if augment_random_rotate:
@@ -213,7 +213,7 @@ def test(save=False):
 
     with torch.no_grad():
     
-        for verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, scene, ref_idx in tqdm(test_loader):
+        for scene, verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(test_loader):
 
             # move to device
             verts = verts.to(device)

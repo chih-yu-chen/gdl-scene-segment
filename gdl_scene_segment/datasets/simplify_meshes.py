@@ -191,7 +191,9 @@ if __name__ == "__main__":
                         help="the parameters for each level of simplification")
     args = parser.parse_args()
     
-    # level_params = [0.02, 0.04, 30, 30, 30, 30, 30]
+    # level_params = [0.02, 0.04, 30, 30, 30, 30, 30] VMNet
+    # level_params = [0.04, 30, 30, 30] DCM-Net QEM
+    # level_params = [0.04, 0.08, 0.16, 0.32] DCM-Net VC
 
     split_dir = Path("splits")
     if args.test:
@@ -218,27 +220,4 @@ if __name__ == "__main__":
     for csv_file in csv_dir.glob("*.csv"):
         csv_file.unlink()
 
-# TODO center original mesh in preprocess.py,
-# TODO don't transform original mesh in simplify_meshes.py,
-# TODO scale according to original mesh or mesh_1 in scannet_dataset.py,
 # TODO recompute operators for both single_components & holes_filled
-
-# split_path = "/home/cychen/Documents/gdl-scene-segment/ScanNet/Tasks/Benchmark/scannetv2_val.txt"
-# test = False
-# data_dir = Path("/media/cychen/HDD/scannet")
-# preprocess = "centered"
-# level_params = [0.02, 30, 30, 30]
-# i = 0
-# scene = scenes[0]
-# mesh
-# mesh1 = o3d.io.read_triangle_mesh(mesh_paths[1].as_posix())
-# mesh1
-# verts1 = np.asarray(mesh1.vertices)
-# traces01 = np.loadtxt(out_dir/"traces"/f"{scene}_traces{i}{i+1}.txt", dtype=np.uint32)
-# uni, counts = np.unique(traces01, return_counts=True)
-# uni
-# counts.max()
-# balltree = BallTree(verts1)
-# traces = balltree.query(verts, k=1, return_distance=False).flatten()
-# (traces == traces01).sum()
-# traces.shape

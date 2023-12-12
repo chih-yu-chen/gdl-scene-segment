@@ -73,16 +73,16 @@ class ScanNetDataset(Dataset):
 
         # load labels
         label_path = self.train_dir/ "labels"/ f"{scene}_labels.txt"
-        labels = np.loadtxt(label_path, delimiter=',', dtype=np.int8)
+        labels = np.loadtxt(label_path, dtype=np.int8)
         labels = self.label_map[labels]
         labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
 
         # load idx for referenced vertices
         if not self.preprocess == "raw":
             idx_path = self.train_dir/ "idx"/ f"{scene}_referenced_idx.txt"
-            ref_idx = np.loadtxt(idx_path, delimiter=',', dtype=np.int64)
+            ref_idx = np.loadtxt(idx_path, dtype=np.int64)
         else:
             ref_idx = np.arange(verts.shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, scene, ref_idx
+        return scene, verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, ref_idx
