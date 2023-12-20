@@ -11,11 +11,11 @@ from sklearn.neighbors import BallTree
 
 
 
-def process_frame(scene: str,
-                  data_dir: Path,
-                  preprocess: str,
-                  test: bool,
-                  level_params: list[float]
+def process_frame(scene:str,
+                  data_dir:Path,
+                  preprocess:str,
+                  test:bool,
+                  level_params:list[float]
                   ) -> None:
     
     print(f"Processing: {scene}")
@@ -194,6 +194,7 @@ if __name__ == "__main__":
     # level_params = [0.02, 0.04, 30, 30, 30, 30, 30] VMNet
     # level_params = [0.04, 30, 30, 30] DCM-Net QEM
     # level_params = [0.04, 0.08, 0.16, 0.32] DCM-Net VC
+    # level_params = [0.02, 30, 30, 30] Ours
 
     split_dir = Path("splits")
     if args.test:
@@ -207,11 +208,13 @@ if __name__ == "__main__":
 
     # Partial function
     process_frame_p = partial(process_frame,
-                              data_dir=Path(args.data_dir), preprocess=args.preprocess, test=args.test,
+                              data_dir=Path(args.data_dir),
+                              preprocess=args.preprocess,
+                              test=args.test,
                               level_params=args.level_params)
 
     # multi-processing
-    pf_pool = mp.Pool(processes=12)
+    pf_pool = mp.Pool(processes=16)
     pf_pool.map(process_frame_p, scenes)
     pf_pool.close()
     pf_pool.join()
@@ -219,5 +222,3 @@ if __name__ == "__main__":
     csv_dir = Path(args.data_dir, args.preprocess, "hierarchy", "scenes")
     for csv_file in csv_dir.glob("*.csv"):
         csv_file.unlink()
-
-# TODO recompute operators for both single_components & holes_filled
