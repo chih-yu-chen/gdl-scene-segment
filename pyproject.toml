@@ -25,6 +25,7 @@ torchaudio = {version = "2.0.2", source = "torch"}
 torcheval = "^0.0.7"
 torch-geometric = "^2.4.0"
 torchsparse = {version = "^2.1.0+torch20cu118", source = "torchsparse"}
+torch-scatter = {version = "^2.1.2+pt20cu118", source = "torch-scatter"}
 
 
 [[tool.poetry.source]]
@@ -36,6 +37,12 @@ priority = "explicit"
 [[tool.poetry.source]]
 name = "torchsparse"
 url = "http://24.199.104.228/simple"
+priority = "explicit"
+
+
+[[tool.poetry.source]]
+name = "torch-scatter"
+url = "https://data.pyg.org/whl/torch-2.0.0+cu118.html"
 priority = "explicit"
 
 [build-system]

@@ -2286,6 +2286,31 @@ modelhub = ["huggingface_hub"]
 test = ["onnx", "onnxruntime", "pytest", "pytest-cov"]
 
 [[package]]
+name = "torch-scatter"
+version = "2.1.2+pt20cu118"
+description = "PyTorch Extension Library of Optimized Scatter Operations"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "torch_scatter-2.1.2+pt20cu118-cp310-cp310-linux_x86_64.whl", hash = "sha256:314fac6f9bb1fa9e2311fbcfab1e6c4d1f28b10212278de04ae5d94e848a7f1b"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp310-cp310-win_amd64.whl", hash = "sha256:29437799ec390b108022ee1ac51de9c48c2adc10e2607d289d80fd32bf4c855e"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp311-cp311-linux_x86_64.whl", hash = "sha256:6e9e7f47bdd53268ec2c5df9007c729b2a5ab1c7d47746d2dfcc3bc5ac589c5b"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp311-cp311-win_amd64.whl", hash = "sha256:7876968f4142ed7eaaeef4df104819e92c75f11eec2635b02700c23681d1299f"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp38-cp38-linux_x86_64.whl", hash = "sha256:9a9239b9f908b68530ae15986a345c9c3bc1d81a34264bda7ddd014f61b9da15"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp38-cp38-win_amd64.whl", hash = "sha256:cbfb47974349abe0d4cfc33ffaa7c6e461369989e2c08313ab5b5d6609953882"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp39-cp39-linux_x86_64.whl", hash = "sha256:269a5abd09a4270203b7b570bb2897295e54a6234ae6e893938871315444a3c6"},
+    {file = "torch_scatter-2.1.2+pt20cu118-cp39-cp39-win_amd64.whl", hash = "sha256:45f7181756db0a3baa19e91af5e63a857d7bce4508c7bf27b5c45396474ab490"},
+]
+
+[package.extras]
+test = ["pytest", "pytest-cov"]
+
+[package.source]
+type = "legacy"
+url = "https://data.pyg.org/whl/torch-2.0.0+cu118.html"
+reference = "torch-scatter"
+
+[[package]]
 name = "torchaudio"
 version = "2.0.2+cu118"
 description = "An audio package for PyTorch"
@@ -2590,4 +2615,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "024e9b9f917ed17a1fd7b470a297040715eba9403c71b5dfa80d539d012790b4"
+content-hash = "7cda0f6e3564569f50735b2122cb2032ddd8f01b0e98104eaa91faaab9acd13e"
