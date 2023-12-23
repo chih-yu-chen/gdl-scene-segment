@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torch_scatter import scatter_mean
 
 import potpourri3d as pp3d
 
@@ -13,11 +14,16 @@ import diffusion_net
 
 
 
-class ScanNetDataset(Dataset):
+class ScanNetHierarchyDataset(Dataset):
 
-    def __init__(self, train:bool, data_dir:Path, preprocess:str,
-                 with_rgb:bool=False, n_levels:int=5,
-                 k_eig:int=128, op_cache_dir:Path=None):
+    def __init__(self,
+                 train:bool,
+                 data_dir:Path,
+                 preprocess:str,
+                 n_levels:int,
+                 with_rgb:bool,
+                 k_eig:int,
+                 op_cache_dir:Path):
 
         self.train = train
         self.data_dir = data_dir/ preprocess
@@ -27,7 +33,6 @@ class ScanNetDataset(Dataset):
         self.n_levels = n_levels
         self.k_eig = k_eig
         self.op_cache_dir = op_cache_dir/ preprocess
-        self.op_cache_dir.mkdir(parents=True, exist_ok=True)
         self.classes = np.asarray([1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
         self.label_map = np.ones(41, dtype=np.int8) * -100
         np.put(self.label_map, self.classes, np.arange(self.classes.size))
@@ -37,7 +42,6 @@ class ScanNetDataset(Dataset):
         if self.train:
             with open(split_dir/ "scannetv2_train.txt", 'r') as f:
             # with open(split_dir/ "scannetv2_train_3e5.txt", 'r') as f:
-            # with open("gdl_scene_segment/datasets/splits/scannetv2_train.txt", 'r') as f:
                 self.scene_list = f.read().splitlines()
         else:
             with open(split_dir/ "scannetv2_val.txt", 'r') as f:
@@ -53,7 +57,7 @@ class ScanNetDataset(Dataset):
 
         scene = self.scene_list[idx]
 
-        # load mesh
+        # load mesh * 5
         mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
         mesh_paths = [self.hierarchy_dir/ "scenes"/ mesh_path.with_stem(f"{mesh_path.stem}_{i+1}").name
                       for i in range(self.n_levels)]
@@ -71,17 +75,8 @@ class ScanNetDataset(Dataset):
         scale = np.linalg.norm(verts[0], axis=-1).max()
         verts = [v / scale for v in verts]
 
-        # load rgb
-        rgb = None
-        if self.with_rgb:
-            rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
-            rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
-            rgb = rgb / 255.
-            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
-
-        # precompute operators
-        frames = []
-        massvec = []
+        # load operators * 5
+        mass = []
         L = []
         evals = []
         evecs = []
@@ -89,15 +84,14 @@ class ScanNetDataset(Dataset):
         gradY = []
         for v, f in zip(verts, faces):
             ops = diffusion_net.geometry.get_operators(v, f, self.k_eig, self.op_cache_dir)
-            frames.append(ops[0])
-            massvec.append(ops[1])
+            mass.append(ops[1])
             L.append(ops[2])
             evals.append(ops[3])
             evecs.append(ops[4])
             gradX.append(ops[5])
             gradY.append(ops[6])
 
-        # load labels
+        # load labels * 2
         labels = []
         label_paths = [self.data_dir/ "labels"/ f"{scene}_labels.txt",
                        self.hierarchy_dir/ "labels"/ f"{scene}_labels1.txt"]
@@ -106,17 +100,28 @@ class ScanNetDataset(Dataset):
             l = self.label_map[l]
             labels.append(torch.tensor(np.ascontiguousarray(l.astype(np.int64))))
 
-        # load idx for referenced vertices
+        # load traces * 4
+        trace_paths = [self.hierarchy_dir/ "traces"/ f"{scene}_traces{i}{i+1}.txt"
+                       for i in range(self.n_levels)]
+        traces = [np.loadtxt(path, dtype=np.int64) for path in trace_paths]
+        traces = [torch.tensor(np.ascontiguousarray(t.astype(np.int64))) for t in traces]
+
+        # load rgb * 2
+        rgbs = []
+        if self.with_rgb:
+            rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
+            rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
+            rgb = rgb / 255.
+            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
+            rgbs.append(rgb)
+        rgbs.append(scatter_mean(rgb, traces[0], dim=-2))
+
+        # load idx * 1
         if not self.preprocess == "centered":
             idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
             ref_idx = np.loadtxt(idx_path, dtype=np.int64)
         else:
-            ref_idx = np.arange(verts.shape[0], dtype=np.int64)
+            ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        # load traces to map between meshes in different levels
-        trace_paths = [self.hierarchy_dir/ "traces"/ f"{scene}_traces{i}{i+1}.txt"
-                       for i in range(self.n_levels)]
-        traces = [np.loadtxt(path, dtype=np.int64) for path in trace_paths]
-
-        return scene, verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, ref_idx, traces
+        return scene, verts[0], rgbs[0], mass, L, evals, evecs, gradX, gradY, labels[0], ref_idx, traces
