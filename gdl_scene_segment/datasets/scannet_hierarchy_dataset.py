@@ -61,7 +61,7 @@ class ScanNetHierarchyDataset(Dataset):
         mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
         mesh_paths = [self.hierarchy_dir/ "scenes"/ mesh_path.with_stem(f"{mesh_path.stem}_{i+1}").name
                       for i in range(self.n_levels)]
-        # mesh_paths.insert(0, mesh_path)
+        mesh_paths.insert(0, mesh_path)
 
         verts = []
         faces = []

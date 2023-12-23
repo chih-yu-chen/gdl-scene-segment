@@ -224,7 +224,7 @@ def train_epoch():
         rgb_0 += jitter
         rgb_0 = torch.clamp(rgb_0, min=0, max=1)
 
-        jitter = scatter_mean(jitter, traces[0], dim=-2)
+        jitter = scatter_mean(torch.tensor(jitter), traces[0], dim=-2)
         rgb_1 += jitter
         rgb_1 = torch.clamp(rgb_1, min=0, max=1)
 
