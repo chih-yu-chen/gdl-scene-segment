@@ -139,7 +139,7 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (_, verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, ref_idx) in enumerate(tqdm(train_loader)):
+    for i, (_, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx) in enumerate(tqdm(train_loader)):
 
         # augmentation
         if augment_random_rotate:
@@ -150,8 +150,6 @@ def train_epoch():
 
         # move to device
         verts = verts.to(device)
-        faces = faces.to(device)
-        frames = frames.to(device)
         mass = mass.to(device)
         L = L.to(device)
         evals = evals.to(device)
@@ -174,7 +172,7 @@ def train_epoch():
             features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
         # apply the model
-        preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
+        preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
 
         # evaluate loss
         loss = torch.nn.functional.nll_loss(preds, labels)
@@ -213,12 +211,10 @@ def test(save=False):
 
     with torch.no_grad():
     
-        for scene, verts, rgb, faces, frames, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(test_loader):
+        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(test_loader):
 
             # move to device
             verts = verts.to(device)
-            faces = faces.to(device)
-            frames = frames.to(device)
             mass = mass.to(device)
             L = L.to(device)
             evals = evals.to(device)
@@ -240,7 +236,7 @@ def test(save=False):
                 features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
             # apply the model
-            preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
+            preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
 
             # track loss
             loss = torch.nn.functional.nll_loss(preds, labels)

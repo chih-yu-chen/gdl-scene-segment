@@ -24,7 +24,6 @@ class ScanNetDataset(Dataset):
         self.with_rgb = with_rgb
         self.k_eig = k_eig
         self.op_cache_dir = Path(op_cache_dir)/ preprocess
-        self.op_cache_dir.mkdir(parents=True, exist_ok=True)
         self.classes = np.asarray([1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
         self.label_map = np.ones(41, dtype=np.int8) * -100
         np.put(self.label_map, self.classes, np.arange(self.classes.size))
@@ -69,7 +68,7 @@ class ScanNetDataset(Dataset):
             rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
 
         # precompute operators
-        frames, massvec, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
+        _, massvec, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
 
         # load labels
         label_path = self.train_dir/ "labels"/ f"{scene}_labels.txt"
@@ -85,4 +84,4 @@ class ScanNetDataset(Dataset):
             ref_idx = np.arange(verts.shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, verts, rgb, faces, frames, massvec, L, evals, evecs, gradX, gradY, labels, ref_idx
+        return scene, verts, rgb, massvec, L, evals, evecs, gradX, gradY, labels, ref_idx
