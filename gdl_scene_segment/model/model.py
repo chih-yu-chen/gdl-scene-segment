@@ -212,23 +212,24 @@ class GeodesicBranch(nn.Module):
 
         # Unet-like structure
         #----- Input -----
-        self.input_lin = nn.Linear(c_in, c0)
+        # self.input_lin = nn.Linear(c_in, c0)
+        self.input_lin = nn.Linear(c_in, c1)
 
         #----- Encoder -----
-        # Level 0
-        self.enc_0 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c0,
-                                            mlp_hidden_dims=[c0]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.enc_0):
-            self.add_module(f"Encoder_L0_DiffusionNetBlock_{i}", block)
+        # # Level 0
+        # self.enc_0 = [
+        #     DiffNetLayers.DiffusionNetBlock(C_width=c0,
+        #                                     mlp_hidden_dims=[c0]*n_mlp_hidden,
+        #                                     dropout=dropout,
+        #                                     diffusion_method='spectral',
+        #                                     with_gradient_features=True, 
+        #                                     with_gradient_rotations=True)
+        # ] * n_diffnet_blocks
+        # for i, block in enumerate(self.enc_0):
+        #     self.add_module(f"Encoder_L0_DiffusionNetBlock_{i}", block)
 
         # Level 1
-        self.enc_lin_1 = nn.Linear(c0, c1)
+        # self.enc_lin_1 = nn.Linear(c0, c1)
         self.enc_1 = [
             DiffNetLayers.DiffusionNetBlock(C_width=c1,
                                             mlp_hidden_dims=[c1]*n_mlp_hidden,
@@ -322,46 +323,47 @@ class GeodesicBranch(nn.Module):
         for i, block in enumerate(self.dec_1):
             self.add_module(f"Decoder_L1_DiffusionNetBlock_{i}", block)
 
-       # Level 0
-        self.dec_lin_00 = nn.Linear(c1, c0)
-        self.dec_lin_01 = nn.Linear(c0*2, c0)
-        self.dec_0 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c0,
-                                            mlp_hidden_dims=[c0]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.dec_0):
-            self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", block)
+       # # Level 0
+       #  self.dec_lin_00 = nn.Linear(c1, c0)
+       #  self.dec_lin_01 = nn.Linear(c0*2, c0)
+       #  self.dec_0 = [
+       #      DiffNetLayers.DiffusionNetBlock(C_width=c0,
+       #                                      mlp_hidden_dims=[c0]*n_mlp_hidden,
+       #                                      dropout=dropout,
+       #                                      diffusion_method='spectral',
+       #                                      with_gradient_features=True, 
+       #                                      with_gradient_rotations=True)
+       #  ] * n_diffnet_blocks
+       #  for i, block in enumerate(self.dec_0):
+       #      self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", block)
 
         #----- Output -----
-        self.output_lin = nn.Linear(c0, c_out)
+        # self.output_lin = nn.Linear(c0, c_out)
+        self.output_lin = nn.Linear(c1, c_out)
 
     def forward(self,
                 x_in,
-                traces01, traces12, traces23, traces34,
-                mass_0, mass_1, mass_2, mass_3, mass_m,
-                L_0, L_1, L_2, L_3, L_m,
-                evals_0, evals_1, evals_2, evals_3, evals_m,
-                evecs_0, evecs_1, evecs_2, evecs_3, evecs_m,
-                gradX_0, gradX_1, gradX_2, gradX_3, gradX_m,
-                gradY_0, gradY_1, gradY_2, gradY_3, gradY_m):
+                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+                mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+                traces01, traces12, traces23, traces34):
 
         #----- Input -----
-        x_0 = self.input_lin(x_in)
+        # x_0 = self.input_lin(x_in)
+        x_1 = self.input_lin(x_in)
 
         #----- Encoder -----
-        # Level 0
-        x_enc_0 = self.enc_0[0](x_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        for block in self.enc_0[1:]:
-            x_enc_0 = block(x_enc_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        x_enc_0 = x_enc_0 + x_0
-        x_1, _ = scatter_max(x_enc_0, traces01, dim=-2)
+        # # Level 0
+        # x_enc_0 = self.enc_0[0](x_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
+        # for block in self.enc_0[1:]:
+        #     x_enc_0 = block(x_enc_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
+        # x_enc_0 = x_enc_0 + x_0
+        # x_1, _ = scatter_max(x_enc_0, traces01, dim=-2)
         
         # Level 1
-        x_1 = self.enc_lin_1(x_1)
+        # x_1 = self.enc_lin_1(x_1)
         x_enc_1 = self.enc_1[0](x_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
         for block in self.enc_1[1:]:
             x_enc_1 = block(x_enc_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
@@ -422,18 +424,19 @@ class GeodesicBranch(nn.Module):
             y_dec_1 = block(y_dec_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
         y_dec_1 = y_dec_1 + y_1
 
-        # Level 0
-        y_0 = y_dec_1[traces01]
-        y_0 = self.dec_lin_00(y_0)
-        y_0 = torch.cat((y_0, x_enc_0))
-        y_0 = self.dec_lin_01(y_0)
-        y_dec_0 = self.dec_0[0](y_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        for block in self.dec_0[1:]:
-            y_dec_0 = block(y_dec_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        y_dec_0 = y_dec_0 + y_0
+        # # Level 0
+        # y_0 = y_dec_1[traces01]
+        # y_0 = self.dec_lin_00(y_0)
+        # y_0 = torch.cat((y_0, x_enc_0))
+        # y_0 = self.dec_lin_01(y_0)
+        # y_dec_0 = self.dec_0[0](y_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
+        # for block in self.dec_0[1:]:
+        #     y_dec_0 = block(y_dec_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
+        # y_dec_0 = y_dec_0 + y_0
 
         #----- Output -----
-        y = self.output_lin(y_dec_0)
+        # y = self.output_lin(y_dec_0)
+        y = self.output_lin(y_dec_1)
 
         return y
 
@@ -458,12 +461,11 @@ class DiffusionVoxelNet(nn.Module):
 
     def forward(self,
                 x_in, vox_coords, vox_feats,
-                mass_0, mass_1, mass_2, mass_3, mass_m,
-                L_0, L_1, L_2, L_3, L_m,
-                evals_0, evals_1, evals_2, evals_3, evals_m,
-                evecs_0, evecs_1, evecs_2, evecs_3, evecs_m,
-                gradX_0, gradX_1, gradX_2, gradX_3, gradX_m,
-                gradY_0, gradY_1, gradY_2, gradY_3, gradY_m,
+                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+                mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
                 traces01, traces12, traces23, traces34):
 
         """
@@ -484,32 +486,32 @@ class DiffusionVoxelNet(nn.Module):
             x_in = x_in.unsqueeze(0)
             vox_coords = torch.cat((torch.zeros_like(vox_coords[:,:1], dtype=torch.int),
                                     vox_coords), dim=-1)
-            mass_0 = mass_0.unsqueeze(0)
+            # mass_0 = mass_0.unsqueeze(0)
             mass_1 = mass_1.unsqueeze(0)
             mass_2 = mass_2.unsqueeze(0)
             mass_3 = mass_3.unsqueeze(0)
             mass_m = mass_m.unsqueeze(0)
-            L_0 = L_0.unsqueeze(0)
+            # L_0 = L_0.unsqueeze(0)
             L_1 = L_1.unsqueeze(0)
             L_2 = L_2.unsqueeze(0)
             L_3 = L_3.unsqueeze(0)
             L_m = L_m.unsqueeze(0)
-            evals_0 = evals_0.unsqueeze(0)
+            # evals_0 = evals_0.unsqueeze(0)
             evals_1 = evals_1.unsqueeze(0)
             evals_2 = evals_2.unsqueeze(0)
             evals_3 = evals_3.unsqueeze(0)
             evals_m = evals_m.unsqueeze(0)
-            evecs_0 = evecs_0.unsqueeze(0)
+            # evecs_0 = evecs_0.unsqueeze(0)
             evecs_1 = evecs_1.unsqueeze(0)
             evecs_2 = evecs_2.unsqueeze(0)
             evecs_3 = evecs_3.unsqueeze(0)
             evecs_m = evecs_m.unsqueeze(0)
-            gradX_0 = gradX_0.unsqueeze(0)
+            # gradX_0 = gradX_0.unsqueeze(0)
             gradX_1 = gradX_1.unsqueeze(0)
             gradX_2 = gradX_2.unsqueeze(0)
             gradX_3 = gradX_3.unsqueeze(0)
             gradX_m = gradX_m.unsqueeze(0)
-            gradY_0 = gradY_0.unsqueeze(0)
+            # gradY_0 = gradY_0.unsqueeze(0)
             gradY_1 = gradY_1.unsqueeze(0)
             gradY_2 = gradY_2.unsqueeze(0)
             gradY_3 = gradY_3.unsqueeze(0)
@@ -523,13 +525,12 @@ class DiffusionVoxelNet(nn.Module):
 
         euc_out = self.EuclideanBranch(vox_feats, vox_coords)
         geo_out = self.GeodesicBranch(x_in,
-            traces01, traces12, traces23, traces34,
-            mass_0, mass_1, mass_2, mass_3, mass_m,
-            L_0, L_1, L_2, L_3, L_m,
-            evals_0, evals_1, evals_2, evals_3, evals_m,
-            evecs_0, evecs_1, evecs_2, evecs_3, evecs_m,
-            gradX_0, gradX_1, gradX_2, gradX_3, gradX_m,
-            gradY_0, gradY_1, gradY_2, gradY_3, gradY_m
+            # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+            mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+            mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+            mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+            traces01, traces12, traces23, traces34
         )
 
         return euc_out, geo_out

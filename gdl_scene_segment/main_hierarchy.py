@@ -175,14 +175,23 @@ def train_epoch():
     for i, (_, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces) in enumerate(tqdm(train_loader)):
 
         # unpack lists
-        rgb = rgbs
+        verts_0, verts_1 = verts
+        rgb_0, rgb_1 = rgbs
 
-        mass_0, mass_1, mass_2, mass_3, mass_m = mass
-        L_0, L_1, L_2, L_3, L_m = L
-        evals_0, evals_1, evals_2, evals_3, evals_m = evals
-        evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
-        gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
-        gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
+        # mass_0, mass_1, mass_2, mass_3, mass_m = mass
+        # L_0, L_1, L_2, L_3, L_m = L
+        # evals_0, evals_1, evals_2, evals_3, evals_m = evals
+        # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
+        # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
+        # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
+        mass_1, mass_2, mass_3, mass_m = mass
+        L_1, L_2, L_3, L_m = L
+        evals_1, evals_2, evals_3, evals_m = evals
+        evecs_1, evecs_2, evecs_3, evecs_m = evecs
+        gradX_1, gradX_2, gradX_3, gradX_m = gradX
+        gradY_1, gradY_2, gradY_3, gradY_m = gradY
+
+        labels_0, labels_1 = labels
 
         traces01, traces12, traces23, traces34 = traces
 
@@ -193,76 +202,85 @@ def train_epoch():
         scale = utils.random_scale(max_scale=scaling_scale)
 
         if augment_random_rotate:
-            verts = torch.matmul(verts, rot_mat)
-        verts += offset
-        verts[:,0] *= sign
-        verts *= scale
+            verts_0 = torch.matmul(verts_0, rot_mat)
+            verts_1 = torch.matmul(verts_1, rot_mat)
+        verts_0 += offset
+        verts_0[:,0] *= sign
+        verts_0 *= scale
+        verts_1 += offset
+        verts_1[:,0] *= sign
+        verts_1 *= scale
 
         # sparse-voxelize vertices
-        voxels = verts.detach().numpy()
+        voxels = verts_0.detach().numpy()
         voxels = voxels - voxels.min(axis=0)
         voxels, vox_idx = sparse_quantize(voxels, voxel_size=0.02, return_index=True)
         voxels = torch.tensor(voxels, dtype=torch.int)
-        labels_vox = torch.tensor(labels[vox_idx], dtype=torch.long)
+        labels_vox = torch.tensor(labels_0[vox_idx], dtype=torch.long)
 
         # rgb features
-        rgb_shape = rgb.shape
+        rgb_shape = rgb_0.shape
         jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
-        rgb += jitter
-        rgb = torch.clamp(rgb, min=0, max=1)
+        rgb_0 += jitter
+        rgb_0 = torch.clamp(rgb_0, min=0, max=1)
 
-        rgb_vox = torch.tensor(rgb[vox_idx], dtype=torch.float)
-        rgb_vox = rgb_vox.to(device)
+        jitter = scatter_mean(jitter, traces[0], dim=-2)
+        rgb_1 += jitter
+        rgb_1 = torch.clamp(rgb_1, min=0, max=1)
+
+        rgb_vox = torch.tensor(rgb_0[vox_idx], dtype=torch.float)
 
         # construct features
         if input_features == 'xyz':
-            x_in = verts
+            x_in = verts_1
         elif input_features == 'xyzrgb':
-            x_in = torch.hstack((verts, rgb))
+            x_in = torch.hstack((verts_1, rgb_1))
         elif input_features == 'hks':
             x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
 
         # move to device
         x_in = x_in.to(device)
         voxels = voxels.to(device)
+        rgb_vox = rgb_vox.to(device)
 
-        mass_0 = mass_0.to(device)
+        # mass_0 = mass_0.to(device)
         mass_1 = mass_1.to(device)
         mass_2 = mass_2.to(device)
         mass_3 = mass_3.to(device)
         mass_m = mass_m.to(device)
 
-        L_0 = L_0.to(device)
+        # L_0 = L_0.to(device)
         L_1 = L_1.to(device)
         L_2 = L_2.to(device)
         L_3 = L_3.to(device)
         L_m = L_m.to(device)
 
-        evals_0 = evals_0.to(device)
+        # evals_0 = evals_0.to(device)
         evals_1 = evals_1.to(device)
         evals_2 = evals_2.to(device)
         evals_3 = evals_3.to(device)
         evals_m = evals_m.to(device)
 
-        evecs_0 = evecs_0.to(device)
+        # evecs_0 = evecs_0.to(device)
         evecs_1 = evecs_1.to(device)
         evecs_2 = evecs_2.to(device)
         evecs_3 = evecs_3.to(device)
         evecs_m = evecs_m.to(device)
 
-        gradX_0 = gradX_0.to(device)
+        # gradX_0 = gradX_0.to(device)
         gradX_1 = gradX_1.to(device)
         gradX_2 = gradX_2.to(device)
         gradX_3 = gradX_3.to(device)
         gradX_m = gradX_m.to(device)
 
-        gradY_0 = gradY_0.to(device)
+        # gradY_0 = gradY_0.to(device)
         gradY_1 = gradY_1.to(device)
         gradY_2 = gradY_2.to(device)
         gradY_3 = gradY_3.to(device)
         gradY_m = gradY_m.to(device)
 
-        labels = labels.to(device)
+        labels_0 = labels_0.to(device)
+        labels_1 = labels_1.to(device)
         labels_vox = labels_vox.to(device)
 
         traces01 = traces01.to(device)
@@ -273,12 +291,11 @@ def train_epoch():
         # apply the model
         euc_out, geo_out = model(
             x_in, voxels, rgb_vox,
-            mass_0, mass_1, mass_2, mass_3, mass_m,
-            L_0, L_1, L_2, L_3, L_m,
-            evals_0, evals_1, evals_2, evals_3, evals_m,
-            evecs_0, evecs_1, evecs_2, evecs_3, evecs_m,
-            gradX_0, gradX_1, gradX_2, gradX_3, gradX_m,
-            gradY_0, gradY_1, gradY_2, gradY_3, gradY_m,
+            # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+            mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+            mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+            mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             traces01, traces12, traces23, traces34
         )
 
@@ -289,8 +306,9 @@ def train_epoch():
         
         # track accuracy
         geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
+        geo_preds = geo_preds[traces01]
         geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
-        gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
+        gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
         tps += this_tps
         fps += this_fps
@@ -322,77 +340,87 @@ def val(save_pred=False):
         for scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces in tqdm(val_loader):
 
             # unpack lists
-            rgb = rgbs
+            verts_0, verts_1 = verts
+            rgb_0, rgb_1 = rgbs
 
-            mass_0, mass_1, mass_2, mass_3, mass_m = mass
-            L_0, L_1, L_2, L_3, L_m = L
-            evals_0, evals_1, evals_2, evals_3, evals_m = evals
-            evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
-            gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
-            gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
+            # mass_0, mass_1, mass_2, mass_3, mass_m = mass
+            # L_0, L_1, L_2, L_3, L_m = L
+            # evals_0, evals_1, evals_2, evals_3, evals_m = evals
+            # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
+            # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
+            # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
+            mass_1, mass_2, mass_3, mass_m = mass
+            L_1, L_2, L_3, L_m = L
+            evals_1, evals_2, evals_3, evals_m = evals
+            evecs_1, evecs_2, evecs_3, evecs_m = evecs
+            gradX_1, gradX_2, gradX_3, gradX_m = gradX
+            gradY_1, gradY_2, gradY_3, gradY_m = gradY
+
+            labels_0, labels_1 = labels
 
             traces01, traces12, traces23, traces34 = traces
 
             # sparse-voxelize vertices
-            voxels = verts.detach().numpy()
+            voxels = verts_0.detach().numpy()
             voxels = voxels - voxels.min(axis=0)
             voxels, vox_idx = sparse_quantize(voxels, voxel_size=0.02, return_index=True)
             voxels = torch.tensor(voxels, dtype=torch.int)
-            labels_vox = torch.tensor(labels[vox_idx], dtype=torch.long)
+            labels_vox = torch.tensor(labels_0[vox_idx], dtype=torch.long)
             
             # rgb features
             rgb_vox = torch.tensor(rgb[vox_idx], dtype=torch.float)
-            rgb_vox = rgb_vox.to(device)
     
             # construct features
             if input_features == 'xyz':
-                x_in = verts
+                x_in = verts_1
             elif input_features == 'xyzrgb':
-                x_in = torch.hstack((verts, rgb))
+                x_in = torch.hstack((verts_1, rgb_1))
             elif input_features == 'hks':
                 x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
 
             # move to device
             x_in = x_in.to(device)
             voxels = voxels.to(device)
+            rgb_vox = rgb_vox.to(device)
 
-            mass_0 = mass_0.to(device)
+            # mass_0 = mass_0.to(device)
             mass_1 = mass_1.to(device)
             mass_2 = mass_2.to(device)
             mass_3 = mass_3.to(device)
             mass_m = mass_m.to(device)
 
-            L_0 = L_0.to(device)
+            # L_0 = L_0.to(device)
             L_1 = L_1.to(device)
             L_2 = L_2.to(device)
             L_3 = L_3.to(device)
             L_m = L_m.to(device)
 
-            evals_0 = evals_0.to(device)
+            # evals_0 = evals_0.to(device)
             evals_1 = evals_1.to(device)
             evals_2 = evals_2.to(device)
             evals_3 = evals_3.to(device)
             evals_m = evals_m.to(device)
 
-            evecs_0 = evecs_0.to(device)
+            # evecs_0 = evecs_0.to(device)
             evecs_1 = evecs_1.to(device)
             evecs_2 = evecs_2.to(device)
             evecs_3 = evecs_3.to(device)
             evecs_m = evecs_m.to(device)
 
-            gradX_0 = gradX_0.to(device)
+            # gradX_0 = gradX_0.to(device)
             gradX_1 = gradX_1.to(device)
             gradX_2 = gradX_2.to(device)
             gradX_3 = gradX_3.to(device)
             gradX_m = gradX_m.to(device)
 
-            gradY_0 = gradY_0.to(device)
+            # gradY_0 = gradY_0.to(device)
             gradY_1 = gradY_1.to(device)
             gradY_2 = gradY_2.to(device)
             gradY_3 = gradY_3.to(device)
             gradY_m = gradY_m.to(device)
 
-            labels = labels.to(device)
+            labels_0 = labels_0.to(device)
+            labels_1 = labels_1.to(device)
             labels_vox = labels_vox.to(device)
 
             traces01 = traces01.to(device)
@@ -403,12 +431,11 @@ def val(save_pred=False):
             # apply the model
             euc_out, geo_out = model(
                 x_in, voxels, rgb_vox,
-                mass_0, mass_1, mass_2, mass_3, mass_m,
-                L_0, L_1, L_2, L_3, L_m,
-                evals_0, evals_1, evals_2, evals_3, evals_m,
-                evecs_0, evecs_1, evecs_2, evecs_3, evecs_m,
-                gradX_0, gradX_1, gradX_2, gradX_3, gradX_m,
-                gradY_0, gradY_1, gradY_2, gradY_3, gradY_m,
+                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+                mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
                 traces01, traces12, traces23, traces34
             )
 
@@ -418,8 +445,9 @@ def val(save_pred=False):
 
             # track accuracy
             geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
+            geo_preds = geo_preds[traces01]
             geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
-            gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
+            gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
             tps += this_tps
             fps += this_fps
