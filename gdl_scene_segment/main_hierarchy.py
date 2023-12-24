@@ -384,7 +384,7 @@ def val(save_pred=False):
             verts_1 = verts_1 / norm_max
             
             # rgb features
-            rgb_vox = torch.tensor(rgb[vox_idx], dtype=torch.float)
+            rgb_vox = torch.tensor(rgb_0[vox_idx], dtype=torch.float)
     
             # construct features
             if input_features == 'xyz':
