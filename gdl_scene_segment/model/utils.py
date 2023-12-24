@@ -52,8 +52,6 @@ def random_rgb_jitter(shape, scale=0.05, prob=0.95):
         jitter = np.random.normal(size=shape).astype(np.float32) * scale
     else:
         jitter = np.zeros(shape)
-        rgb += jitter
-        rgb = torch.clamp(rgb, min=0, max=1)
 
     return jitter
 

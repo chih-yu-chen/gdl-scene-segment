@@ -14,7 +14,8 @@ import diffusion_net
 from datasets.scannet_hierarchy_dataset import ScanNetHierarchyDataset
 from model import model, utils
 import os
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 
