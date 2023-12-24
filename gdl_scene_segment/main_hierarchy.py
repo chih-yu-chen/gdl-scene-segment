@@ -197,6 +197,9 @@ def train_epoch():
 
         traces01, traces12, traces23, traces34 = traces
 
+        # normalize
+        norm_max = np.linalg.norm(verts_0, axis=-1).max()
+
         # augmentation
         rot_mat = utils.random_rotate_points_z()
         offset = utils.random_translate(scale=translate_scale)
@@ -219,6 +222,10 @@ def train_epoch():
         voxels, vox_idx = sparse_quantize(voxels, voxel_size=0.02, return_index=True)
         voxels = torch.tensor(voxels, dtype=torch.int)
         labels_vox = torch.tensor(labels_0[vox_idx], dtype=torch.long)
+
+        # normalize
+        verts_0 = verts_0 / norm_max
+        verts_1 = verts_1 / norm_max
 
         # rgb features
         rgb_shape = rgb_0.shape
@@ -362,12 +369,19 @@ def val(save_pred=False):
 
             traces01, traces12, traces23, traces34 = traces
 
+            # normalize
+            norm_max = np.linalg.norm(verts_0, axis=-1).max()
+
             # sparse-voxelize vertices
             voxels = verts_0.detach().numpy()
             voxels = voxels - voxels.min(axis=0)
             voxels, vox_idx = sparse_quantize(voxels, voxel_size=0.02, return_index=True)
             voxels = torch.tensor(voxels, dtype=torch.int)
             labels_vox = torch.tensor(labels_0[vox_idx], dtype=torch.long)
+
+            # normalize
+            verts_0 = verts_0 / norm_max
+            verts_1 = verts_1 / norm_max
             
             # rgb features
             rgb_vox = torch.tensor(rgb[vox_idx], dtype=torch.float)

@@ -124,4 +124,4 @@ class ScanNetHierarchyDataset(Dataset):
             ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, verts[:2], rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces
+        return scene, [verts[0]*scale,verts[1]*scale], rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces
