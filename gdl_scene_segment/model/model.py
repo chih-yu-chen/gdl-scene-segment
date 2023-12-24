@@ -190,7 +190,7 @@ class EuclideanBranch(nn.Module):
         #----- Output -----
         output = self.output_layer(y_dec_1)
 
-        return output.F, x_mid, y_dec_3, y_dec_2, y_dec_1
+        return output.F
 
 
 
@@ -532,5 +532,8 @@ class DiffusionVoxelNet(nn.Module):
             mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             traces01, traces12, traces23, traces34
         )
+
+        if appended_batch_dim:
+            geo_out = geo_out.squeeze(0)
 
         return euc_out, geo_out

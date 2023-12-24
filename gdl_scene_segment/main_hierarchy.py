@@ -302,13 +302,13 @@ def train_epoch():
         )
 
         # evaluate loss
-        loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels)
+        loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
         total_loss += loss.item()
         loss.backward()
         
         # track accuracy
         geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-        geo_preds = geo_preds[traces01]
+        geo_preds = geo_preds[traces01.cpu()]
         geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
         gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
@@ -442,12 +442,12 @@ def val(save_pred=False):
             )
 
             # track loss
-            loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels)
+            loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
             total_loss += loss.item()
 
             # track accuracy
             geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-            geo_preds = geo_preds[traces01]
+            geo_preds = geo_preds[traces01.cpu()]
             geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
             gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
