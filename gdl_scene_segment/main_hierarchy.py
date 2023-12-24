@@ -84,8 +84,8 @@ checkpt_every = 10
 
 # augmentation settings
 augment_random_rotate = (input_features != 'hks')
-translate_scale = 1
-scaling_scale = 50
+translate_scale = 0.2
+scaling_range = 0.5
 
 
 
@@ -201,7 +201,7 @@ def train_epoch():
         rot_mat = utils.random_rotate_points_z()
         offset = utils.random_translate(scale=translate_scale)
         sign = utils.random_flip()
-        scale = utils.random_scale(max_scale=scaling_scale)
+        scale = utils.random_scale(scaling_range=scaling_range)
 
         if augment_random_rotate:
             verts_0 = torch.matmul(verts_0, rot_mat)

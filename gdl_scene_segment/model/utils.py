@@ -19,10 +19,10 @@ def random_rotate_points_z(prob=0.95):
 
     return rot_mat
 
-def random_translate(scale=1, prob=0.95):
+def random_translate(scale=0.2, prob=0.95):
 
     if np.random.rand() < prob:
-        offset = (np.random.rand(3).astype(np.float32) - 0.5) * 2 * scale
+        offset = (np.random.rand(3).astype(np.float32) * 2 - 1) * scale
     else:
         offset = np.zeros(3, dtype=np.float32)
 
@@ -37,10 +37,10 @@ def random_flip(prob=0.95):
 
     return sign
 
-def random_scale(max_scale=50, prob=0.95):
+def random_scale(scaling_range=0.5, prob=0.95):
 
     if np.random.rand() < prob:
-        scale = np.random.rand() * max_scale
+        scale = np.random.rand() * scaling_range + (1-scaling_range/2)
     else:
         scale = 1
 
