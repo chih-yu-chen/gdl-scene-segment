@@ -39,6 +39,7 @@ args = parser.parse_args()
 
 # computing devices
 device = torch.device(f'cuda:{args.gpu}')
+torch.cuda.set_device(int(args.gpu))
 
 
 

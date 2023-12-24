@@ -395,9 +395,9 @@ class GeodesicBranch(nn.Module):
 
         #----- Decoder -----
         # Level 3
-        y_3 = x_mid[traces34]
+        y_3 = x_mid[:,traces34,:]
         y_3 = self.dec_lin_30(y_3)
-        y_3 = torch.cat((y_3, x_enc_3))
+        y_3 = torch.cat((y_3, x_enc_3), dim=-1)
         y_3 = self.dec_lin_31(y_3)
         y_dec_3 = self.dec_3[0](y_3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
         for block in self.dec_3[1:]:
@@ -405,9 +405,9 @@ class GeodesicBranch(nn.Module):
         y_dec_3 = y_dec_3 + y_3
 
         # Level 2
-        y_2 = y_dec_3[traces23]
+        y_2 = y_dec_3[:,traces23,:]
         y_2 = self.dec_lin_20(y_2)
-        y_2 = torch.cat((y_2, x_enc_2))
+        y_2 = torch.cat((y_2, x_enc_2), dim=-1)
         y_2 = self.dec_lin_21(y_2)
         y_dec_2 = self.dec_2[0](y_2, mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2)
         for block in self.dec_2[1:]:
@@ -415,9 +415,9 @@ class GeodesicBranch(nn.Module):
         y_dec_2 = y_dec_2 + y_2
 
         # Level 1
-        y_1 = y_dec_2[traces12]
+        y_1 = y_dec_2[:,traces12,:]
         y_1 = self.dec_lin_10(y_1)
-        y_1 = torch.cat((y_1, x_enc_1))
+        y_1 = torch.cat((y_1, x_enc_1), dim=-1)
         y_1 = self.dec_lin_11(y_1)
         y_dec_1 = self.dec_1[0](y_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
         for block in self.dec_1[1:]:
@@ -425,9 +425,9 @@ class GeodesicBranch(nn.Module):
         y_dec_1 = y_dec_1 + y_1
 
         # # Level 0
-        # y_0 = y_dec_1[traces01]
+        # y_0 = y_dec_1[:,traces01,:]
         # y_0 = self.dec_lin_00(y_0)
-        # y_0 = torch.cat((y_0, x_enc_0))
+        # y_0 = torch.cat((y_0, x_enc_0), dim=-1)
         # y_0 = self.dec_lin_01(y_0)
         # y_dec_0 = self.dec_0[0](y_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
         # for block in self.dec_0[1:]:
