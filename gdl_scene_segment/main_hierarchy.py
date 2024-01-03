@@ -316,8 +316,10 @@ def train_epoch():
         # track accuracy
         geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
         geo_preds = geo_preds[traces01.cpu()]
-        geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
-        gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
+        geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                     ).put_(ref_idx, geo_preds)
+        gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                     ).put_(ref_idx, labels_0.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
         tps += this_tps
         fps += this_fps
@@ -462,8 +464,10 @@ def val(save_pred=False):
             # track accuracy
             geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
             geo_preds = geo_preds[traces01.cpu()]
-            geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, geo_preds)
-            gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels_0.cpu())
+            geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                         ).put_(ref_idx, geo_preds)
+            gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                         ).put_(ref_idx, labels_0.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
             tps += this_tps
             fps += this_fps
