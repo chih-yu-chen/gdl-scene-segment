@@ -127,17 +127,17 @@ if train:
 
 
 # the model
-model = model.DiffusionVoxelNet(# n_diffnet_blocks=n_diffnet_blocks,
-                                # n_mlp_hidden=n_mlp_hidden,
-                                # dropout=dropout,
+model = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
+                                n_mlp_hidden=n_mlp_hidden,
+                                dropout=dropout,
                                 c_in=c_in,
-                                # c_out=c_out,
-                                # c0=c0,
-                                # c1=c1,
-                                # c2=c2,
-                                # c3=c3,
-                                # c_m=c_m
-                                )
+                                c_out=c_out,
+                                c0=c0,
+                                c1=c1,
+                                c2=c2,
+                                c3=c3,
+                                c_m=c_m
+)
 
 model = model.to(device)
 
@@ -308,9 +308,9 @@ def train_epoch():
         #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
         #     traces01, traces12, traces23, traces34
         # )
-        euc_out = model(
-            x_in, voxels, rgb_vox,
-        )
+        # euc_out = model(
+        #     x_in, voxels, rgb_vox,
+        # )
         geo_out = model(
             x_in, voxels, rgb_vox,
             # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,

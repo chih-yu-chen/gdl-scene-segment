@@ -461,7 +461,7 @@ class DiffusionVoxelNet(nn.Module):
 
     def forward(self,
                 x_in, vox_coords, vox_feats,
-                mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
                 mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
                 mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
                 mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
