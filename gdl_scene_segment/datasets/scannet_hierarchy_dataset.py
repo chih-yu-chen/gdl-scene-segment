@@ -21,7 +21,6 @@ class ScanNetHierarchyDataset(Dataset):
                  data_dir:Path,
                  preprocess:str,
                  n_levels:int,
-                 with_rgb:bool,
                  k_eig:int,
                  op_cache_dir:Path):
 
@@ -29,7 +28,6 @@ class ScanNetHierarchyDataset(Dataset):
         self.data_dir = data_dir/ preprocess
         self.preprocess = preprocess
         self.hierarchy_dir = self.data_dir/ "hierarchy"
-        self.with_rgb = with_rgb
         self.n_levels = n_levels
         self.k_eig = k_eig
         self.op_cache_dir = op_cache_dir/ preprocess
@@ -108,12 +106,11 @@ class ScanNetHierarchyDataset(Dataset):
 
         # load rgb * 2
         rgbs = []
-        if self.with_rgb:
-            rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
-            rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
-            rgb = rgb / 255.
-            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
-            rgbs.append(rgb)
+        rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
+        rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
+        rgb = rgb / 255.
+        rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
+        rgbs.append(rgb)
         rgbs.append(scatter_mean(rgb, traces[0], dim=-2))
 
         # load idx * 1

@@ -13,9 +13,10 @@ sys.path.append(str(pkg_path))
 import diffusion_net
 from datasets.scannet_hierarchy_dataset import ScanNetHierarchyDataset
 from model import model, utils
+from config.config import settings
+
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 
@@ -23,16 +24,10 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, required=True,
                     help="directory to the ScanNet dataset")
-parser.add_argument("--preprocess", type=str,
-                    help="which preprocessing", required=True)
 parser.add_argument("--gpu", type=str, default="0",
                     help="which gpu")
 parser.add_argument("--evaluate", action="store_true",
                     help="evaluate using the pretrained model")
-parser.add_argument("--input_features", type=str, default = 'xyz',
-                    help="'xyz', 'xyzrgb', or 'hks', default: xyz")
-parser.add_argument("--experiment", type=str, required=True,
-                    help="experiment name")
 args = parser.parse_args()
 
 
@@ -40,67 +35,58 @@ args = parser.parse_args()
 # computing devices
 device = torch.device(f'cuda:{args.gpu}')
 torch.cuda.set_device(int(args.gpu))
+os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
+# paths
+data_dir = Path(args.data_dir)
+preprocess = settings.data.preprocess
+experiment = settings.experiment
+exp_dir = Path("..", "experiments", experiment).resolve()
+exp_dir.mkdir(parents=True, exist_ok=True)
+model_path = exp_dir/ "model.pt"
+pred_dir = exp_dir/ "preds"
+pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 # task settings
-n_class = 20
-class_names = "mIoU,\
-wall,floor,cabinet,bed,chair,\
-sofa,table,door,window,bookshelf,\
-picture,counter,desk,curtain,refridgerator,\
-shower curtain,toilet,sink,bathtub,otherfurniture\n"
+n_class = settings.data.n_class
+class_names = settings.data.class_names
 
 
 
 # model settings
-input_features = args.input_features # one of ['xyz', 'xyzrgb, 'hks']
-n_levels = 4
-with_rgb = ('rgb' in input_features)
-k_eig = 128
-n_diffnet_blocks = 2
-n_mlp_hidden = 2
-dropout = True
+input_features = settings.model.input_features
+n_levels = settings.model.n_levels
+k_eig = settings.model.k_eig
+op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
+n_diffnet_blocks = settings.model.n_diffnet_blocks
+n_mlp_hidden = settings.model.n_mlp_hidden
+dropout = settings.model.dropout
+
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 c_out = n_class
-c0 = 32
-c1 = 64
-c2 = 96
-c3 = 128
-c_m = 160
+c0 = settings.model.c0
+c1 = settings.model.c1
+c2 = settings.model.c2
+c3 = settings.model.c3
+c_m = settings.model.c_m
 loss_f = torch.nn.functional.cross_entropy
 
 
 
 # training settings
 train = not args.evaluate
-n_epoch = 200
-pseudo_batch_size = 8
-lr = 1e-3
-lr_step_size = 50
-checkpt_every = 10
+n_epoch = settings.training.n_epoch
+pseudo_batch_size = settings.training.pseudo_batch_size
+lr = settings.training.lr
+checkpt_every = settings.training.checkpt_every
 
 
 
 # augmentation settings
-augment_random_rotate = (input_features != 'hks')
-translate_scale = 0.2
-scaling_range = 0.5
-
-
-
-
-# paths
-experiment = args.experiment
-data_dir = Path(args.data_dir)
-preprocess = args.preprocess
-op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
-op_cache_dir.mkdir(parents=True, exist_ok=True)
-exp_dir = Path("..", "experiments", experiment).resolve()
-exp_dir.mkdir(parents=True, exist_ok=True)
-model_path = exp_dir/ "model.pt"
-pred_dir = exp_dir/ "preds"
-pred_dir.mkdir(parents=True, exist_ok=True)
+random_rotate = settings.training.augment.rotate
+translate_scale = settings.training.augment.translate_scale
+scaling_range = settings.training.augment.scaling_range
 
 
 
@@ -109,7 +95,6 @@ val_dataset = ScanNetHierarchyDataset(train=False,
                                        data_dir=data_dir,
                                        preprocess=preprocess,
                                        n_levels=n_levels,
-                                       with_rgb=with_rgb,
                                        k_eig=k_eig,
                                        op_cache_dir=op_cache_dir)
 val_loader = DataLoader(val_dataset, batch_size=None)
@@ -119,7 +104,6 @@ if train:
                                             data_dir=data_dir,
                                             preprocess=preprocess,
                                             n_levels=n_levels,
-                                            with_rgb=with_rgb,
                                             k_eig=k_eig,
                                             op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
@@ -152,10 +136,9 @@ if not train:
 
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-# # DiffusionNet human segmentation
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
-# PicassoNet++ 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
+lr_step_size = settings.model.lr_step_size
+gamma = settings.model.lr_step_gamma
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
 # # VMNet & DGNet
 # lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
 # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
@@ -207,7 +190,7 @@ def train_epoch():
         sign = utils.random_flip()
         scale = utils.random_scale(scaling_range=scaling_range)
 
-        if augment_random_rotate:
+        if random_rotate:
             verts_0 = torch.matmul(verts_0, rot_mat)
             verts_1 = torch.matmul(verts_1, rot_mat)
         verts_0 += offset
