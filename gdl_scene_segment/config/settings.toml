@@ -31,4 +31,5 @@ rotate = true
 translate_scale = 0.2
 scaling_range = 0.5
 
-experiment = ""
+[experiment]
+name = ""

@@ -40,7 +40,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 # paths
 data_dir = Path(args.data_dir)
 preprocess = settings.data.preprocess
-experiment = settings.experiment
+experiment = settings.experiment.name
 exp_dir = Path("..", "experiments", experiment).resolve()
 exp_dir.mkdir(parents=True, exist_ok=True)
 model_path = exp_dir/ "model.pt"
