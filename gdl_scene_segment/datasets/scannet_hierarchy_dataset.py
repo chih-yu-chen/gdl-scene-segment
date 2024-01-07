@@ -36,7 +36,7 @@ class ScanNetHierarchyDataset(Dataset):
         np.put(self.label_map, self.classes, np.arange(self.classes.size))
 
         # load train test split
-        split_dir = Path("datasets", "splits")
+        split_dir = Path(__file__).parents[0]/ "splits"
         if self.train:
             with open(split_dir/ "scannetv2_train.txt", 'r') as f:
             # with open(split_dir/ "scannetv2_train_3e5.txt", 'r') as f:
