@@ -19,14 +19,16 @@ python compute_operators_hierarchy.py --data_dir DATA_DIR --preprocess PREPROCES
 
 ## Configure Experiment
 ```
+export NAME="name" # set experiment name
 cd ../../experiments
-mkdir NAME
-vim NAME/experiment.toml
+mkdir $NAME
+cp ../gdl_scene_segment/config/settings.toml $NAME/experiment.toml
+vim $NAME/experiment.toml # configure your experiment
 ```
 
 ## Train
 ```
 cd ..
-export SETTINGS_FILES_FOR_DYNACONF="gdl_scene_segment/config/settings.toml;experiments/NAME/experiment.toml"
+export SETTINGS_FILES_FOR_DYNACONF="gdl_scene_segment/config/settings.toml;experiments/$NAME/experiment.toml"
 python gdl_scene_segment/main_hierarchy.py --data_dir DATA_DIR --gpu GPU
 ```
