@@ -136,8 +136,8 @@ if not train:
 
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-lr_step_size = settings.model.lr_step_size
-gamma = settings.model.lr_step_gamma
+lr_step_size = settings.training.lr_step_size
+gamma = settings.training.lr_step_gamma
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
 # # VMNet & DGNet
 # lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
