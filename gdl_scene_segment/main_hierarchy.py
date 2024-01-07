@@ -187,12 +187,12 @@ def train_epoch():
         # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
         # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
         # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
-        # mass_1, mass_2, mass_3, mass_m = mass
-        # L_1, L_2, L_3, L_m = L
-        # evals_1, evals_2, evals_3, evals_m = evals
-        # evecs_1, evecs_2, evecs_3, evecs_m = evecs
-        # gradX_1, gradX_2, gradX_3, gradX_m = gradX
-        # gradY_1, gradY_2, gradY_3, gradY_m = gradY
+        mass_1, mass_2, mass_3, mass_m = mass
+        L_1, L_2, L_3, L_m = L
+        evals_1, evals_2, evals_3, evals_m = evals
+        evecs_1, evecs_2, evecs_3, evecs_m = evecs
+        gradX_1, gradX_2, gradX_3, gradX_m = gradX
+        gradY_1, gradY_2, gradY_3, gradY_m = gradY
 
         labels_0, labels_1 = labels
 
@@ -254,40 +254,40 @@ def train_epoch():
         rgb_vox = rgb_vox.to(device)
 
         # mass_0 = mass_0.to(device)
-        # mass_1 = mass_1.to(device)
-        # mass_2 = mass_2.to(device)
-        # mass_3 = mass_3.to(device)
-        # mass_m = mass_m.to(device)
+        mass_1 = mass_1.to(device)
+        mass_2 = mass_2.to(device)
+        mass_3 = mass_3.to(device)
+        mass_m = mass_m.to(device)
 
         # L_0 = L_0.to(device)
-        # L_1 = L_1.to(device)
-        # L_2 = L_2.to(device)
-        # L_3 = L_3.to(device)
-        # L_m = L_m.to(device)
+        L_1 = L_1.to(device)
+        L_2 = L_2.to(device)
+        L_3 = L_3.to(device)
+        L_m = L_m.to(device)
 
         # evals_0 = evals_0.to(device)
-        # evals_1 = evals_1.to(device)
-        # evals_2 = evals_2.to(device)
-        # evals_3 = evals_3.to(device)
-        # evals_m = evals_m.to(device)
+        evals_1 = evals_1.to(device)
+        evals_2 = evals_2.to(device)
+        evals_3 = evals_3.to(device)
+        evals_m = evals_m.to(device)
 
         # evecs_0 = evecs_0.to(device)
-        # evecs_1 = evecs_1.to(device)
-        # evecs_2 = evecs_2.to(device)
-        # evecs_3 = evecs_3.to(device)
-        # evecs_m = evecs_m.to(device)
+        evecs_1 = evecs_1.to(device)
+        evecs_2 = evecs_2.to(device)
+        evecs_3 = evecs_3.to(device)
+        evecs_m = evecs_m.to(device)
 
         # gradX_0 = gradX_0.to(device)
-        # gradX_1 = gradX_1.to(device)
-        # gradX_2 = gradX_2.to(device)
-        # gradX_3 = gradX_3.to(device)
-        # gradX_m = gradX_m.to(device)
+        gradX_1 = gradX_1.to(device)
+        gradX_2 = gradX_2.to(device)
+        gradX_3 = gradX_3.to(device)
+        gradX_m = gradX_m.to(device)
 
         # gradY_0 = gradY_0.to(device)
-        # gradY_1 = gradY_1.to(device)
-        # gradY_2 = gradY_2.to(device)
-        # gradY_3 = gradY_3.to(device)
-        # gradY_m = gradY_m.to(device)
+        gradY_1 = gradY_1.to(device)
+        gradY_2 = gradY_2.to(device)
+        gradY_3 = gradY_3.to(device)
+        gradY_m = gradY_m.to(device)
 
         labels_0 = labels_0.to(device)
         labels_1 = labels_1.to(device)
@@ -311,22 +311,32 @@ def train_epoch():
         euc_out = model(
             x_in, voxels, rgb_vox,
         )
+        geo_out = model(
+            x_in, voxels, rgb_vox,
+            # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+            mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+            mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+            mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+            traces01, traces12, traces23, traces34
+        )
 
         # evaluate loss
-        loss = loss_f(euc_out, labels_vox)# + loss_f(geo_out, labels_1)
+        # loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
+        loss = loss_f(geo_out, labels_1)
         total_loss += loss.item()
         loss.backward()
         
         # track accuracy
-        # geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-        # geo_preds = geo_preds[traces01.cpu()]
-        # geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-        #              ).put_(ref_idx, geo_preds)
-        # gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-        #              ).put_(ref_idx, labels_0.cpu())
-        # this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
-        euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
-        this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
+        geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
+        geo_preds = geo_preds[traces01.cpu()]
+        geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                     ).put_(ref_idx, geo_preds)
+        gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                     ).put_(ref_idx, labels_0.cpu())
+        this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
+        # euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
+        # this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
         tps += this_tps
         fps += this_fps
         fns += this_fns
@@ -366,12 +376,12 @@ def val(save_pred=False):
             # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
             # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
             # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
-            # mass_1, mass_2, mass_3, mass_m = mass
-            # L_1, L_2, L_3, L_m = L
-            # evals_1, evals_2, evals_3, evals_m = evals
-            # evecs_1, evecs_2, evecs_3, evecs_m = evecs
-            # gradX_1, gradX_2, gradX_3, gradX_m = gradX
-            # gradY_1, gradY_2, gradY_3, gradY_m = gradY
+            mass_1, mass_2, mass_3, mass_m = mass
+            L_1, L_2, L_3, L_m = L
+            evals_1, evals_2, evals_3, evals_m = evals
+            evecs_1, evecs_2, evecs_3, evecs_m = evecs
+            gradX_1, gradX_2, gradX_3, gradX_m = gradX
+            gradY_1, gradY_2, gradY_3, gradY_m = gradY
 
             labels_0, labels_1 = labels
 
@@ -408,40 +418,40 @@ def val(save_pred=False):
             rgb_vox = rgb_vox.to(device)
 
             # mass_0 = mass_0.to(device)
-            # mass_1 = mass_1.to(device)
-            # mass_2 = mass_2.to(device)
-            # mass_3 = mass_3.to(device)
-            # mass_m = mass_m.to(device)
+            mass_1 = mass_1.to(device)
+            mass_2 = mass_2.to(device)
+            mass_3 = mass_3.to(device)
+            mass_m = mass_m.to(device)
 
             # L_0 = L_0.to(device)
-            # L_1 = L_1.to(device)
-            # L_2 = L_2.to(device)
-            # L_3 = L_3.to(device)
-            # L_m = L_m.to(device)
+            L_1 = L_1.to(device)
+            L_2 = L_2.to(device)
+            L_3 = L_3.to(device)
+            L_m = L_m.to(device)
 
             # evals_0 = evals_0.to(device)
-            # evals_1 = evals_1.to(device)
-            # evals_2 = evals_2.to(device)
-            # evals_3 = evals_3.to(device)
-            # evals_m = evals_m.to(device)
+            evals_1 = evals_1.to(device)
+            evals_2 = evals_2.to(device)
+            evals_3 = evals_3.to(device)
+            evals_m = evals_m.to(device)
 
             # evecs_0 = evecs_0.to(device)
-            # evecs_1 = evecs_1.to(device)
-            # evecs_2 = evecs_2.to(device)
-            # evecs_3 = evecs_3.to(device)
-            # evecs_m = evecs_m.to(device)
+            evecs_1 = evecs_1.to(device)
+            evecs_2 = evecs_2.to(device)
+            evecs_3 = evecs_3.to(device)
+            evecs_m = evecs_m.to(device)
 
             # gradX_0 = gradX_0.to(device)
-            # gradX_1 = gradX_1.to(device)
-            # gradX_2 = gradX_2.to(device)
-            # gradX_3 = gradX_3.to(device)
-            # gradX_m = gradX_m.to(device)
+            gradX_1 = gradX_1.to(device)
+            gradX_2 = gradX_2.to(device)
+            gradX_3 = gradX_3.to(device)
+            gradX_m = gradX_m.to(device)
 
             # gradY_0 = gradY_0.to(device)
-            # gradY_1 = gradY_1.to(device)
-            # gradY_2 = gradY_2.to(device)
-            # gradY_3 = gradY_3.to(device)
-            # gradY_m = gradY_m.to(device)
+            gradY_1 = gradY_1.to(device)
+            gradY_2 = gradY_2.to(device)
+            gradY_3 = gradY_3.to(device)
+            gradY_m = gradY_m.to(device)
 
             labels_0 = labels_0.to(device)
             labels_1 = labels_1.to(device)
@@ -462,24 +472,34 @@ def val(save_pred=False):
             #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             #     traces01, traces12, traces23, traces34
             # )
-            euc_out = model(
+            # euc_out = model(
+            #     x_in, voxels, rgb_vox,
+            # )
+            geo_out = model(
                 x_in, voxels, rgb_vox,
+                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+                mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+                traces01, traces12, traces23, traces34
             )
 
             # track loss
-            loss = loss_f(euc_out, labels_vox)# + loss_f(geo_out, labels_1)
+            # loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
+            loss = loss_f(geo_out, labels_1)
             total_loss += loss.item()
 
             # track accuracy
-            # geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-            # geo_preds = geo_preds[traces01.cpu()]
-            # geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-            #              ).put_(ref_idx, geo_preds)
-            # gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-            #              ).put_(ref_idx, labels_0.cpu())
-            # this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
-            euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
-            this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
+            geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
+            geo_preds = geo_preds[traces01.cpu()]
+            geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                         ).put_(ref_idx, geo_preds)
+            gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                         ).put_(ref_idx, labels_0.cpu())
+            this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
+            # euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
+            # this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
             tps += this_tps
             fps += this_fps
             fns += this_fns

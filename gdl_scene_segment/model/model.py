@@ -443,30 +443,30 @@ class GeodesicBranch(nn.Module):
 class DiffusionVoxelNet(nn.Module):
 
     def __init__(self,
-                #  n_diffnet_blocks,
-                #  n_mlp_hidden, dropout,
+                 n_diffnet_blocks,
+                 n_mlp_hidden, dropout,
                  c_in,
-                #  c_out, c0, c1, c2, c3, c_m
+                 c_out, c0, c1, c2, c3, c_m
         ) -> None:
 
         super().__init__()
 
         self.c_in = c_in
-        self.EuclideanBranch = EuclideanBranch(c_in-3)
-        # self.GeodesicBranch = GeodesicBranch(
-        #     n_diffnet_blocks,
-        #     n_mlp_hidden, dropout,
-        #     c_in, c_out, c0, c1, c2, c3, c_m
-        # )
+        # self.EuclideanBranch = EuclideanBranch(c_in-3)
+        self.GeodesicBranch = GeodesicBranch(
+            n_diffnet_blocks,
+            n_mlp_hidden, dropout,
+            c_in, c_out, c0, c1, c2, c3, c_m
+        )
 
     def forward(self,
                 x_in, vox_coords, vox_feats,
-                # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-                # mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-                # mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-                # mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-                # mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-                #traces01, traces12, traces23, traces34
+                mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+                mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+                mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+                traces01, traces12, traces23, traces34
                 ):
 
         """
@@ -488,35 +488,35 @@ class DiffusionVoxelNet(nn.Module):
             vox_coords = torch.cat((torch.zeros_like(vox_coords[:,:1], dtype=torch.int),
                                     vox_coords), dim=-1)
             # mass_0 = mass_0.unsqueeze(0)
-            # mass_1 = mass_1.unsqueeze(0)
-            # mass_2 = mass_2.unsqueeze(0)
-            # mass_3 = mass_3.unsqueeze(0)
-            # mass_m = mass_m.unsqueeze(0)
+            mass_1 = mass_1.unsqueeze(0)
+            mass_2 = mass_2.unsqueeze(0)
+            mass_3 = mass_3.unsqueeze(0)
+            mass_m = mass_m.unsqueeze(0)
             # L_0 = L_0.unsqueeze(0)
-            # L_1 = L_1.unsqueeze(0)
-            # L_2 = L_2.unsqueeze(0)
-            # L_3 = L_3.unsqueeze(0)
-            # L_m = L_m.unsqueeze(0)
+            L_1 = L_1.unsqueeze(0)
+            L_2 = L_2.unsqueeze(0)
+            L_3 = L_3.unsqueeze(0)
+            L_m = L_m.unsqueeze(0)
             # evals_0 = evals_0.unsqueeze(0)
-            # evals_1 = evals_1.unsqueeze(0)
-            # evals_2 = evals_2.unsqueeze(0)
-            # evals_3 = evals_3.unsqueeze(0)
-            # evals_m = evals_m.unsqueeze(0)
+            evals_1 = evals_1.unsqueeze(0)
+            evals_2 = evals_2.unsqueeze(0)
+            evals_3 = evals_3.unsqueeze(0)
+            evals_m = evals_m.unsqueeze(0)
             # evecs_0 = evecs_0.unsqueeze(0)
-            # evecs_1 = evecs_1.unsqueeze(0)
-            # evecs_2 = evecs_2.unsqueeze(0)
-            # evecs_3 = evecs_3.unsqueeze(0)
-            # evecs_m = evecs_m.unsqueeze(0)
+            evecs_1 = evecs_1.unsqueeze(0)
+            evecs_2 = evecs_2.unsqueeze(0)
+            evecs_3 = evecs_3.unsqueeze(0)
+            evecs_m = evecs_m.unsqueeze(0)
             # gradX_0 = gradX_0.unsqueeze(0)
-            # gradX_1 = gradX_1.unsqueeze(0)
-            # gradX_2 = gradX_2.unsqueeze(0)
-            # gradX_3 = gradX_3.unsqueeze(0)
-            # gradX_m = gradX_m.unsqueeze(0)
+            gradX_1 = gradX_1.unsqueeze(0)
+            gradX_2 = gradX_2.unsqueeze(0)
+            gradX_3 = gradX_3.unsqueeze(0)
+            gradX_m = gradX_m.unsqueeze(0)
             # gradY_0 = gradY_0.unsqueeze(0)
-            # gradY_1 = gradY_1.unsqueeze(0)
-            # gradY_2 = gradY_2.unsqueeze(0)
-            # gradY_3 = gradY_3.unsqueeze(0)
-            # gradY_m = gradY_m.unsqueeze(0)
+            gradY_1 = gradY_1.unsqueeze(0)
+            gradY_2 = gradY_2.unsqueeze(0)
+            gradY_3 = gradY_3.unsqueeze(0)
+            gradY_m = gradY_m.unsqueeze(0)
 
         elif len(x_in.shape) == 3:
             appended_batch_dim = False
@@ -524,17 +524,18 @@ class DiffusionVoxelNet(nn.Module):
         else:
             raise ValueError(f"x_in should be tensor with shape [N,C] or [B,N,C], got {x_in.shape}")
 
-        euc_out = self.EuclideanBranch(vox_feats, vox_coords)
-        # geo_out = self.GeodesicBranch(x_in,
-        #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-        #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-        #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-        #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-        #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-        #     traces01, traces12, traces23, traces34
-        # )
+        # euc_out = self.EuclideanBranch(vox_feats, vox_coords)
+        geo_out = self.GeodesicBranch(x_in,
+            # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+            mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+            mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+            mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+            traces01, traces12, traces23, traces34
+        )
 
-        # if appended_batch_dim:
-        #     geo_out = geo_out.squeeze(0)
+        if appended_batch_dim:
+            geo_out = geo_out.squeeze(0)
 
-        return euc_out#, geo_out
+        # return euc_out, geo_out
+        return geo_out
