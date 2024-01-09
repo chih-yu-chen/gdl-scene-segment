@@ -282,19 +282,7 @@ def train_epoch():
         traces34 = traces34.to(device)
         
         # apply the model
-        # euc_out, geo_out = model(
-        #     x_in, voxels, rgb_vox,
-        #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-        #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-        #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-        #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-        #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-        #     traces01, traces12, traces23, traces34
-        # )
-        # euc_out = model(
-        #     x_in, voxels, rgb_vox,
-        # )
-        geo_out = model(
+        euc_out, geo_out = model(
             x_in, voxels, rgb_vox,
             # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
             mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -303,10 +291,23 @@ def train_epoch():
             mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             traces01, traces12, traces23, traces34
         )
+        # euc_out = model(
+        #     x_in, voxels, rgb_vox,
+        # )
+        # geo_out = model(
+        #     x_in, voxels, rgb_vox,
+        #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+        #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+        #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+        #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+        #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+        #     traces01, traces12, traces23, traces34
+        # )
 
         # evaluate loss
-        # loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
-        loss = loss_f(geo_out, labels_1)
+        loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
+        # loss = loss_f(euc_out, labels_vox)
+        # loss = loss_f(geo_out, labels_1)
         total_loss += loss.item()
         loss.backward()
         
@@ -446,19 +447,7 @@ def val(save_pred=False):
             traces34 = traces34.to(device)
 
             # apply the model
-            # euc_out, geo_out = model(
-            #     x_in, voxels, rgb_vox,
-            #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-            #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-            #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-            #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-            #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-            #     traces01, traces12, traces23, traces34
-            # )
-            # euc_out = model(
-            #     x_in, voxels, rgb_vox,
-            # )
-            geo_out = model(
+            euc_out, geo_out = model(
                 x_in, voxels, rgb_vox,
                 # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
                 mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -467,10 +456,23 @@ def val(save_pred=False):
                 mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
                 traces01, traces12, traces23, traces34
             )
+            # euc_out = model(
+            #     x_in, voxels, rgb_vox,
+            # )
+            # geo_out = model(
+            #     x_in, voxels, rgb_vox,
+            #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
+            #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
+            #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
+            #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
+            #     traces01, traces12, traces23, traces34
+            # )
 
             # track loss
-            # loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
-            loss = loss_f(geo_out, labels_1)
+            loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
+            # loss = loss_f(euc_out, labels_vox)
+            # loss = loss_f(geo_out, labels_1)
             total_loss += loss.item()
 
             # track accuracy

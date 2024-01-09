@@ -452,7 +452,7 @@ class DiffusionVoxelNet(nn.Module):
         super().__init__()
 
         self.c_in = c_in
-        # self.EuclideanBranch = EuclideanBranch(c_in-3)
+        self.EuclideanBranch = EuclideanBranch(c_in-3)
         self.GeodesicBranch = GeodesicBranch(
             n_diffnet_blocks,
             n_mlp_hidden, dropout,
@@ -524,7 +524,7 @@ class DiffusionVoxelNet(nn.Module):
         else:
             raise ValueError(f"x_in should be tensor with shape [N,C] or [B,N,C], got {x_in.shape}")
 
-        # euc_out = self.EuclideanBranch(vox_feats, vox_coords)
+        euc_out = self.EuclideanBranch(vox_feats, vox_coords)
         geo_out = self.GeodesicBranch(x_in,
             # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
             mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -537,5 +537,6 @@ class DiffusionVoxelNet(nn.Module):
         if appended_batch_dim:
             geo_out = geo_out.squeeze(0)
 
-        # return euc_out, geo_out
-        return geo_out
+        return euc_out, geo_out
+        # return euc_out
+        # return geo_out
