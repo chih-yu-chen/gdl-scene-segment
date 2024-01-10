@@ -62,8 +62,8 @@ dropout = settings.model.dropout
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 c_out = n_class
 c0 = settings.model.c0
+mlp_hidden_dims = [c0] * n_mlp_hidden
 loss_f = torch.nn.functional.cross_entropy
-
 
 
 # training settings
@@ -104,6 +104,7 @@ model = diffusion_net.layers.DiffusionNet(C_in=c_in,
                                           C_out=n_class,
                                           C_width=c0,
                                           N_block=n_diffnet_blocks,
+                                          mlp_hidden_dims=mlp_hidden_dims,
                                           outputs_at='vertices',
                                           dropout=dropout
 )
