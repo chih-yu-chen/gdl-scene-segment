@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 
 pkg_path = Path(__file__).parents[2]/ "diffusion-net"/ "src"
-sys.path.append(str(pkg_path))
+sys.path.append(pkg_path.as_posix())
 import diffusion_net
 
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     op_cache_dir.mkdir(parents=True, exist_ok=True)
 
     # load splits
-    split_dir = Path("splits")
+    split_dir = Path(__file__).parent/ "splits"
     with open(split_dir/ "scannetv2_train.txt", 'r') as f:
         scenes = f.read().splitlines()
     with open(split_dir/ "scannetv2_val.txt", 'r') as f:
@@ -61,6 +61,7 @@ if __name__ == "__main__":
         # unit scale
         scale = np.linalg.norm(verts[0], axis=-1).max()
         verts = [v / scale for v in verts]
+        # verts = [diffusion_net.geometry.normalize_positions(v) for v in verts]
 
         # precompute operators
         for v, f in zip(verts, faces):

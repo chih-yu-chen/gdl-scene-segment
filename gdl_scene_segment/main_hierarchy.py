@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 import sys
 pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
-sys.path.append(str(pkg_path))
+sys.path.append(pkg_path.as_posix())
 import diffusion_net
 from datasets.scannet_hierarchy_dataset import ScanNetHierarchyDataset
 from model import model, utils
@@ -46,6 +46,7 @@ exp_dir.mkdir(parents=True, exist_ok=True)
 model_path = exp_dir/ "model.pt"
 pred_dir = exp_dir/ "preds"
 pred_dir.mkdir(parents=True, exist_ok=True)
+
 
 
 # task settings
@@ -130,7 +131,7 @@ model = model.to(device)
 # load the pretrained model
 if not train:
     print(f"Loading pretrained model from: {model_path}")
-    model.load_state_dict(torch.load(str(model_path)))
+    model.load_state_dict(torch.load(model_path.as_posix()))
 
 
 
@@ -181,7 +182,7 @@ def train_epoch():
 
         traces01, traces12, traces23, traces34 = traces
 
-        # normalize
+        # get maximum norm
         norm_max = np.linalg.norm(verts_0, axis=-1).max()
 
         # augmentation
@@ -371,7 +372,7 @@ def val(save_pred=False):
 
             traces01, traces12, traces23, traces34 = traces
 
-            # normalize
+            # get maximum norm
             norm_max = np.linalg.norm(verts_0, axis=-1).max()
 
             # sparse-voxelize vertices
