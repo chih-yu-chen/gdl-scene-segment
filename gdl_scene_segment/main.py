@@ -7,10 +7,12 @@ from tqdm import tqdm
 
 import sys
 pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
-sys.path.append(str(pkg_path))
+sys.path.append(pkg_path.as_posix())
 import diffusion_net
 from datasets.scannet_dataset import ScanNetDataset
 from model import utils
+from config.config import settings
+
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -20,62 +22,22 @@ parser.add_argument("--data_dir", type=str, required=True,
                     help="directory to the ScanNet dataset")
 parser.add_argument("--gpu", type=str, default="0",
                     help="which gpu")
-parser.add_argument("--cpu", action="store_true",
-                    help="use cpu instead of gpu")
 parser.add_argument("--evaluate", action="store_true",
                     help="evaluate using the pretrained model")
-parser.add_argument("--input_features", type=str, default = 'xyz',
-                    help="'xyz', 'xyzrgb', or 'hks', default: xyz")
-parser.add_argument("--preprocess", type=str,
-                    help="which preprocessing", required=True)
-parser.add_argument("--without_gradient_rotations", action="store_true",
-                    help="without learned gradient rotations")
-parser.add_argument("--experiment", type=str, required=True,
-                    help="experiment name")
 args = parser.parse_args()
 
 
 
 # computing devices
-if args.cpu:
-    device = torch.device('cpu')
-else:
-    device = torch.device(f'cuda:{args.gpu}')
-
-
-
-# task settings
-n_class = 20
-class_names = "mIoU,\
-wall,floor,cabinet,bed,chair,\
-sofa,table,door,window,bookshelf,\
-picture,counter,desk,curtain,refridgerator,\
-shower curtain,toilet,sink,bathtub,otherfurniture\n"
-
-# model settings
-input_features = args.input_features # one of ['xyz', 'xyzrgb, 'hks']
-k_eig = 128
-
-
-
-# training settings
-train = not args.evaluate
-n_epoch = 200
-pseudo_batch_size = 8
-lr = 1e-3
-lr_step_size = 50
-checkpt_every = 10
-augment_random_rotate = (input_features == 'xyz') | (input_features == 'xyzrgb')
-with_rgb = (input_features == 'xyzrgb')
-with_gradient_rotations = not args.without_gradient_rotations
-
+device = torch.device(f'cuda:{args.gpu}')
+torch.cuda.set_device(int(args.gpu))
+os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
 # paths
-experiment = args.experiment
 data_dir = Path(args.data_dir)
-op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
-op_cache_dir.mkdir(parents=True, exist_ok=True)
-exp_dir = Path("..", "experiments", experiment).resolve()
+preprocess = settings.data.preprocess
+experiment = settings.experiment.name
+exp_dir = Path(__file__).parents[1]/ "experiments"/ experiment
 exp_dir.mkdir(parents=True, exist_ok=True)
 model_path = exp_dir/ "model.pt"
 pred_dir = exp_dir/ "preds"
@@ -83,25 +45,68 @@ pred_dir.mkdir(parents=True, exist_ok=True)
 
 
 
+# task settings
+n_class = settings.data.n_class
+class_names = settings.data.class_names
+
+
+
+# model settings
+input_features = settings.model.input_features
+k_eig = settings.model.k_eig
+op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
+n_diffnet_blocks = settings.model.n_diffnet_blocks
+n_mlp_hidden = settings.model.n_mlp_hidden
+dropout = settings.model.dropout
+
+c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
+c_out = n_class
+c0 = settings.model.c0
+loss_f = torch.nn.functional.cross_entropy
+
+
+
+# training settings
+train = not args.evaluate
+n_epoch = settings.training.n_epoch
+pseudo_batch_size = settings.training.pseudo_batch_size
+lr = settings.training.lr
+checkpt_every = settings.training.checkpt_every
+
+
+
+# augmentation settings
+random_rotate = settings.training.augment.rotate
+translate_scale = settings.training.augment.translate_scale
+scaling_range = settings.training.augment.scaling_range
+
+
+
 # datasets
-test_dataset = ScanNetDataset(train=False, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
-test_loader = DataLoader(test_dataset, batch_size=None)
+val_dataset = ScanNetDataset(train=False,
+                             data_dir=data_dir,
+                             preprocess=preprocess,
+                             k_eig=k_eig,
+                             op_cache_dir=op_cache_dir)
+val_loader = DataLoader(val_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True, data_dir=data_dir, with_rgb=with_rgb, preprocess=args.preprocess, k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_dataset = ScanNetDataset(train=True,
+                                   data_dir=data_dir,
+                                   preprocess=preprocess,
+                                   k_eig=k_eig,
+                                   op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
-
 # the model
-C_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
-
-model = diffusion_net.layers.DiffusionNet(C_in=C_in, C_out=n_class,
-                                          C_width=128, N_block=4,
-                                          last_activation=lambda x: torch.nn.functional.log_softmax(x,dim=-1),
+model = diffusion_net.layers.DiffusionNet(C_in=c_in,
+                                          C_out=n_class,
+                                          C_width=c0,
+                                          N_block=n_diffnet_blocks,
                                           outputs_at='vertices',
-                                          dropout=True,
-                                          with_gradient_rotations=with_gradient_rotations)
+                                          dropout=dropout
+)
 
 model = model.to(device)
 
@@ -110,17 +115,16 @@ model = model.to(device)
 # load the pretrained model
 if not train:
     print(f"Loading pretrained model from: {model_path}")
-    model.load_state_dict(torch.load(str(model_path)))
+    model.load_state_dict(torch.load(model_path.as_posix()))
 
 
 
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-# DiffusionNet human segmentation
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=0.5, verbose=True)
-# PicassoNet++ 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.98, verbose=True)
-# VMNet & DGNet
+lr_step_size = settings.training.lr_step_size
+gamma = settings.training.lr_step_gamma
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
+# # VMNet & DGNet
 # lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
 # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
 
@@ -141,15 +145,40 @@ def train_epoch():
 
     for i, (_, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx) in enumerate(tqdm(train_loader)):
 
+        # get maximum norm
+        norm_max = np.linalg.norm(verts, axis=-1).max()
+
         # augmentation
-        if augment_random_rotate:
-            verts = utils.random_rotate_points_z(verts)
-        verts = utils.random_translate(verts, scale=1)
-        verts = utils.random_flip(verts)
-        verts = utils.random_scale(verts, max_scale=50)
+        rot_mat = utils.random_rotate_points_z()
+        offset = utils.random_translate(scale=translate_scale)
+        sign = utils.random_flip()
+        scale = utils.random_scale(scaling_range=scaling_range)
+
+        if random_rotate:
+            verts = torch.matmul(verts, rot_mat)
+        verts += offset
+        verts[:,0] *= sign
+        verts *= scale
+
+        # normalize
+        verts = verts / norm_max
+
+        # rgb features
+        rgb_shape = rgb.shape
+        jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
+        rgb += jitter
+        rgb = torch.clamp(rgb, min=0, max=1)
+
+        # construct features
+        if input_features == 'xyz':
+            x_in = verts
+        elif input_features == 'xyzrgb':
+            x_in = torch.hstack((verts, rgb))
+        elif input_features == 'hks':
+            x_in = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
         # move to device
-        verts = verts.to(device)
+        x_in = x_in.to(device)
         mass = mass.to(device)
         L = L.to(device)
         evals = evals.to(device)
@@ -158,32 +187,21 @@ def train_epoch():
         gradY = gradY.to(device)
         labels = labels.to(device)
         
-        # rgb features
-        if with_rgb:
-            rgb = utils.random_rgb_jitter(rgb, scale=0.05)
-            rgb = rgb.to(device)
-
-        # construct features
-        if input_features == 'xyz':
-            features = verts
-        elif input_features == 'xyzrgb':
-            features = torch.hstack((verts, rgb))
-        elif input_features == 'hks':
-            features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
-
         # apply the model
-        preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
+        out = model(x_in, mass, L, evals, evecs, gradX, gradY)
 
         # evaluate loss
-        loss = torch.nn.functional.nll_loss(preds, labels)
+        loss = loss_f(out, labels)
         total_loss += loss.item()
         loss.backward()
         
         # track accuracy
-        pred_labels = torch.argmax(preds.cpu(), dim=1)
-        pred_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, pred_labels)
-        labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
-        this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
+        preds = torch.argmax(out.cpu(), dim=-1)
+        preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                 ).put_(ref_idx, preds)
+        labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                  ).put_(ref_idx, labels.cpu())
+        this_tps, this_fps, this_fns = utils.get_ious(preds, labels, n_class)
         tps += this_tps
         fps += this_fps
         fns += this_fns
@@ -195,12 +213,12 @@ def train_epoch():
 
     ious = tps / (tps+fps+fns)
 
-    return total_loss/len(train_loader), np.insert(ious, 0, ious[1:].mean())
+    return total_loss/len(train_loader), np.insert(ious, 0, ious.mean())
 
 
 
 # the validation or test
-def test(save=False):
+def val(save_pred=False):
     
     model.eval()
 
@@ -211,10 +229,24 @@ def test(save=False):
 
     with torch.no_grad():
     
-        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(test_loader):
+        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(val_loader):
+
+            # get maximum norm
+            norm_max = np.linalg.norm(verts, axis=-1).max()
+
+            # normalize
+            verts = verts / norm_max
+
+            # construct features
+            if input_features == 'xyz':
+                x_in = verts
+            elif input_features == 'xyzrgb':
+                x_in = torch.hstack((verts, rgb))
+            elif input_features == 'hks':
+                x_in = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
             # move to device
-            verts = verts.to(device)
+            x_in = x_in.to(device)
             mass = mass.to(device)
             L = L.to(device)
             evals = evals.to(device)
@@ -223,44 +255,34 @@ def test(save=False):
             gradY = gradY.to(device)
             labels = labels.to(device)
             
-            # rgb features
-            if with_rgb:
-                rgb = rgb.to(device)
-
-            # construct features
-            if input_features == 'xyz':
-                features = verts
-            elif input_features == 'xyzrgb':
-                features = torch.hstack((verts, rgb))
-            elif input_features == 'hks':
-                features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
-
             # apply the model
-            preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
+            out = model(x_in, mass, L, evals, evecs, gradX, gradY)
 
             # track loss
-            loss = torch.nn.functional.nll_loss(preds, labels)
+            loss = loss_f(out, labels)
             total_loss += loss.item()
-
+            
             # track accuracy
-            pred_labels = torch.argmax(preds.cpu(), dim=1)
-            pred_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, pred_labels)
-            labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)).put_(ref_idx, labels.cpu())
-            this_tps, this_fps, this_fns = utils.get_ious(pred_labels, labels, n_class)
+            preds = torch.argmax(out.cpu(), dim=-1)
+            preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                    ).put_(ref_idx, preds)
+            labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                    ).put_(ref_idx, labels.cpu())
+            this_tps, this_fps, this_fns = utils.get_ious(preds, labels, n_class)
             tps += this_tps
             fps += this_fps
             fns += this_fns
 
             # save prediction
-            if save:
-                pred_labels[pred_labels == -100] = -1
-                test_dataset.classes = np.append(test_dataset, [0])
-                pred_labels = test_dataset.classes[pred_labels]
-                np.savetxt(pred_dir/ f"{scene}_labels.txt", pred_labels, fmt='%d', delimiter='\n')
+            if save_pred:
+                preds[preds == -100] = -1
+                val_dataset.classes = np.append(val_dataset.classes, [0])
+                preds = val_dataset.classes[preds]
+                np.savetxt(pred_dir/ f"{scene}_labels.txt", preds, fmt='%d')
             
     ious = tps / (tps+fps+fns)
 
-    return total_loss/len(test_loader), np.insert(ious, 0, ious[1:].mean())
+    return total_loss/len(val_loader), np.insert(ious, 0, ious.mean())
 
 
 
@@ -273,26 +295,26 @@ if train:
 
     with open(model_path.with_name("train_iou.csv"), 'w') as f:
         f.write(class_names)
-    with open(model_path.with_name("test_iou.csv"), 'w') as f:
+    with open(model_path.with_name("val_iou.csv"), 'w') as f:
         f.write(class_names)
 
     for epoch in range(n_epoch):
 
         train_loss, train_ious = train_epoch()
-        test_loss, test_ious = test()
+        val_loss, val_ious = val()
         scheduler.step()
 
         print(f"Epoch {epoch}")
-        print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]}\n")
-        print(f"Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")
+        print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]}")
+        print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
 
         with open(model_path.with_name("train_iou.csv"), 'ab') as f:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
-        with open(model_path.with_name("test_iou.csv"), 'ab') as f:
-            np.savetxt(f, test_ious[np.newaxis,:], delimiter=',')
+        with open(model_path.with_name("val_iou.csv"), 'ab') as f:
+            np.savetxt(f, val_ious[np.newaxis,:], delimiter=',')
         with open(model_path.with_name("loss.csv"), 'a') as f:
             f.write(str(train_loss)+",")
-            f.write(str(test_loss)+"\n")
+            f.write(str(val_loss)+"\n")
         
         if (epoch+1) % checkpt_every == 0:
             torch.save(model.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
@@ -301,5 +323,5 @@ if train:
     torch.save(model.state_dict(), model_path)
     print(" ==> last model saved")
 
-test_loss, test_ious = test(save=True)
-print(f"Overall Test Loss: {test_loss:.4f}, Test mIoU: {test_ious[0]}")
+val_loss, val_ious = val(save_pred=True)
+print(f"Overall Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
