@@ -226,9 +226,9 @@ def train_epoch():
 
         # construct features
         if input_features == 'xyz':
-            x_in = verts_1
+            x_in = verts_1.float()
         elif input_features == 'xyzrgb':
-            x_in = torch.hstack((verts_1, rgb_1))
+            x_in = torch.hstack((verts_1, rgb_1)).float()
         elif input_features == 'hks':
             x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
 
@@ -391,9 +391,9 @@ def val(save_pred=False):
     
             # construct features
             if input_features == 'xyz':
-                x_in = verts_1
+                x_in = verts_1.float()
             elif input_features == 'xyzrgb':
-                x_in = torch.hstack((verts_1, rgb_1))
+                x_in = torch.hstack((verts_1, rgb_1)).float()
             elif input_features == 'hks':
                 x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
 
