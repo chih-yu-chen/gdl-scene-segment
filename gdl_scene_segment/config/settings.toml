@@ -12,10 +12,10 @@ n_diffnet_blocks = 2
 n_mlp_hidden = 2
 dropout = true
 c0 = 32
-c1 = 64
-c2 = 96
-c3 = 128
-c_m = 160
+c1 = 32
+c2 = 64
+c3 = 96
+c_m = 128
 
 [training]
 n_epoch = 200
