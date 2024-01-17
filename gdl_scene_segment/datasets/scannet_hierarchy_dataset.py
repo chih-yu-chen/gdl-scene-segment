@@ -89,6 +89,9 @@ class ScanNetHierarchyDataset(Dataset):
             gradX.append(ops[5])
             gradY.append(ops[6])
 
+        # scale back
+        verts = [verts[0]*scale, verts[1]*scale]
+
         # load labels * 2
         labels = []
         label_paths = [self.data_dir/ "labels"/ f"{scene}_labels.txt",
@@ -121,4 +124,4 @@ class ScanNetHierarchyDataset(Dataset):
             ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, [verts[0]*scale,verts[1]*scale], rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces
+        return scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces

@@ -64,6 +64,9 @@ class ScanNetDataset(Dataset):
         # load operators
         _, mass, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
 
+        # scale back
+        verts = verts * scale
+
         # load labels
         label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
         labels = np.loadtxt(label_path, dtype=np.int8)
