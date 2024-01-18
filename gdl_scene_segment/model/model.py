@@ -229,7 +229,7 @@ class GeodesicBranch(nn.Module):
         #                                             with_gradient_features=True,
         #                                             with_gradient_rotations=True)
         #     self.enc_0.append(block)
-        #     self.add_module(f"Encoder_L0_DiffusionNetBlock_{i}", block)
+        #     self.add_module(f"Encoder_L0_DiffusionNetBlock_{i}", self.enc_0[-1])
 
         # Level 1
         # self.enc_lin_1 = nn.Sequential(
@@ -245,7 +245,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.enc_1.append(block)
-            self.add_module(f"Encoder_L1_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Encoder_L1_DiffusionNetBlock_{i}", self.enc_1[-1])
 
         # Level 2
         self.enc_lin_2 = nn.Sequential(
@@ -261,7 +261,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.enc_2.append(block)
-            self.add_module(f"Encoder_L2_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Encoder_L2_DiffusionNetBlock_{i}", self.enc_2[-1])
 
         # Level 3
         self.enc_lin_3 = nn.Sequential(
@@ -277,7 +277,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.enc_3.append(block)
-            self.add_module(f"Encoder_L3_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Encoder_L3_DiffusionNetBlock_{i}", self.enc_3[-1])
 
         #----- Middle -----
         self.enc_lin_m = nn.Sequential(
@@ -293,7 +293,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.mid.append(block)
-            self.add_module(f"Middle_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Middle_DiffusionNetBlock_{i}", self.mid[-1])
 
         #----- Decoder -----
         # Level 3
@@ -314,7 +314,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.dec_3.append(block)
-            self.add_module(f"Decoder_L3_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Decoder_L3_DiffusionNetBlock_{i}", self.dec_3[-1])
 
         # Level 2
         self.dec_lin_20 = nn.Sequential(
@@ -334,7 +334,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.dec_2.append(block)
-            self.add_module(f"Decoder_L2_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Decoder_L2_DiffusionNetBlock_{i}", self.dec_2[-1])
 
         # Level 1
         self.dec_lin_10 = nn.Sequential(
@@ -354,7 +354,7 @@ class GeodesicBranch(nn.Module):
                                                     with_gradient_features=True,
                                                     with_gradient_rotations=True)
             self.dec_1.append(block)
-            self.add_module(f"Decoder_L1_DiffusionNetBlock_{i}", block)
+            self.add_module(f"Decoder_L1_DiffusionNetBlock_{i}", self.dec_1[-1])
 
         # # Level 0
         # self.dec_lin_00 = nn.Sequential(
@@ -374,7 +374,7 @@ class GeodesicBranch(nn.Module):
         #                                             with_gradient_features=True,
         #                                             with_gradient_rotations=True)
         #     self.dec_0.append(block)
-        #     self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", block)
+        #     self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", self.dec_0[-1])
 
         #----- Output -----
         # self.output_lin = nn.Linear(c0, c_out)
