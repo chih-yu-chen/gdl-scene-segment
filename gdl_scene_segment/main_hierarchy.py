@@ -127,7 +127,7 @@ model = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
 model = model.to(device)
 num_params = 0
 for params in model.parameters():
-    if params.requires_grad():
+    if params.requires_grad:
         print(params)
         num_params += params.numel()
 print(f"number of parameters: {num_params}")
