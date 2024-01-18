@@ -16,6 +16,8 @@ from config.config import settings
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
+
+
 # parse arguments outside python
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, required=True,
@@ -110,6 +112,12 @@ model = diffusion_net.layers.DiffusionNet(C_in=c_in,
 )
 
 model = model.to(device)
+num_params = 0
+for params in model.parameters():
+    if params.requires_grad():
+        print(params)
+        num_params += params.numel()
+print(f"number of parameters: {num_params}")
 
 
 

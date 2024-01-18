@@ -125,6 +125,12 @@ model = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
 )
 
 model = model.to(device)
+num_params = 0
+for params in model.parameters():
+    if params.requires_grad():
+        print(params)
+        num_params += params.numel()
+print(f"number of parameters: {num_params}")
 
 
 
@@ -218,7 +224,7 @@ def train_epoch():
         rgb_0 += jitter
         rgb_0 = torch.clamp(rgb_0, min=0, max=1)
 
-        jitter = scatter_mean(torch.tensor(jitter), traces[0], dim=-2)
+        jitter = scatter_mean(torch.tensor(jitter), traces01, dim=-2)
         rgb_1 += jitter
         rgb_1 = torch.clamp(rgb_1, min=0, max=1)
 
@@ -230,7 +236,7 @@ def train_epoch():
         elif input_features == 'xyzrgb':
             x_in = torch.hstack((verts_1, rgb_1)).float()
         elif input_features == 'hks':
-            x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
+            x_in = diffusion_net.geometry.compute_hks_autoscale(evals_1, evecs_1, 16)
 
         # move to device
         x_in = x_in.to(device)
