@@ -112,7 +112,7 @@ if train:
 
 
 # the model
-model = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
+m = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
                                 n_mlp_hidden=n_mlp_hidden,
                                 dropout=dropout,
                                 c_in=c_in,
@@ -124,10 +124,11 @@ model = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
                                 c_m=c_m
 )
 
-model = model.to(device)
+m = m.to(device)
 num_params = 0
-for params in model.parameters():
+for names, params in m.named_parameters():
     if params.requires_grad:
+        print(names)
         print(params)
         num_params += params.numel()
 print(f"number of parameters: {num_params}")
@@ -137,12 +138,12 @@ print(f"number of parameters: {num_params}")
 # load the pretrained model
 if not train:
     print(f"Loading pretrained model from: {model_path}")
-    model.load_state_dict(torch.load(model_path.as_posix()))
+    m.load_state_dict(torch.load(model_path.as_posix()))
 
 
 
 # the optimizer & learning rate scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+optimizer = torch.optim.Adam(m.parameters(), lr=lr)
 lr_step_size = settings.training.lr_step_size
 gamma = settings.training.lr_step_gamma
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
@@ -156,7 +157,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, g
 def train_epoch():
 
     # set model to 'train' mode
-    model.train()
+    m.train()
 
     total_loss = 0
     tps = torch.zeros(n_class)
@@ -289,7 +290,7 @@ def train_epoch():
         traces34 = traces34.to(device)
         
         # apply the model
-        euc_out, geo_out = model(
+        euc_out, geo_out = m(
             x_in, voxels, rgb_vox,
             # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
             mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -298,10 +299,10 @@ def train_epoch():
             mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             traces01, traces12, traces23, traces34
         )
-        # euc_out = model(
+        # euc_out = m(
         #     x_in, voxels, rgb_vox,
         # )
-        # geo_out = model(
+        # geo_out = m(
         #     x_in, voxels, rgb_vox,
         #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
         #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -346,7 +347,7 @@ def train_epoch():
 # the validation
 def val(save_pred=False):
     
-    model.eval()
+    m.eval()
 
     total_loss = 0
     tps = torch.zeros(n_class)
@@ -454,7 +455,7 @@ def val(save_pred=False):
             traces34 = traces34.to(device)
 
             # apply the model
-            euc_out, geo_out = model(
+            euc_out, geo_out = m(
                 x_in, voxels, rgb_vox,
                 # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
                 mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -463,10 +464,10 @@ def val(save_pred=False):
                 mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
                 traces01, traces12, traces23, traces34
             )
-            # euc_out = model(
+            # euc_out = m(
             #     x_in, voxels, rgb_vox,
             # )
-            # geo_out = model(
+            # geo_out = m(
             #     x_in, voxels, rgb_vox,
             #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
             #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
@@ -540,10 +541,10 @@ if train:
             f.write(str(val_loss)+"\n")
         
         if (epoch+1) % checkpt_every == 0:
-            torch.save(model.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
+            torch.save(m.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
             print(" ==> model checkpoint saved")
 
-    torch.save(model.state_dict(), model_path)
+    torch.save(m.state_dict(), model_path)
     print(" ==> last model saved")
 
 val_loss, val_ious = val(save_pred=True)
