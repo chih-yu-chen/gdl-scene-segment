@@ -213,129 +213,168 @@ class GeodesicBranch(nn.Module):
         # Unet-like structure
         #----- Input -----
         # self.input_lin = nn.Linear(c_in, c0)
-        self.input_lin = nn.Linear(c_in, c1)
+        self.input_lin = nn.Sequential(
+            nn.Linear(c_in, c1),
+            nn.ReLU()
+        )
 
         #----- Encoder -----
         # # Level 0
-        # self.enc_0 = [
-        #     DiffNetLayers.DiffusionNetBlock(C_width=c0,
-        #                                     mlp_hidden_dims=[c0]*n_mlp_hidden,
-        #                                     dropout=dropout,
-        #                                     diffusion_method='spectral',
-        #                                     with_gradient_features=True, 
-        #                                     with_gradient_rotations=True)
-        # ] * n_diffnet_blocks
-        # for i, block in enumerate(self.enc_0):
+        # self.enc_0 = []
+        # for i in range(n_diffnet_blocks):
+        #     block = DiffNetLayers.DiffusionNetBlock(C_width=c0,
+        #                                             mlp_hidden_dims=[c0]*n_mlp_hidden,
+        #                                             dropout=dropout,
+        #                                             diffusion_method='spectral',
+        #                                             with_gradient_features=True,
+        #                                             with_gradient_rotations=True)
+        #     self.enc_0.append(block)
         #     self.add_module(f"Encoder_L0_DiffusionNetBlock_{i}", block)
 
         # Level 1
-        # self.enc_lin_1 = nn.Linear(c0, c1)
-        self.enc_1 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c1,
-                                            mlp_hidden_dims=[c1]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.enc_1):
+        # self.enc_lin_1 = nn.Sequential(
+        #     nn.Linear(c0, c1),
+        #     nn.ReLU()
+        # )
+        self.enc_1 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c1,
+                                                    mlp_hidden_dims=[c1]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.enc_1.append(block)
             self.add_module(f"Encoder_L1_DiffusionNetBlock_{i}", block)
 
         # Level 2
-        self.enc_lin_2 = nn.Linear(c1, c2)
-        self.enc_2 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c2,
-                                            mlp_hidden_dims=[c2]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.enc_2):
+        self.enc_lin_2 = nn.Sequential(
+            nn.Linear(c1, c2),
+            nn.ReLU()
+        )
+        self.enc_2 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c2,
+                                                    mlp_hidden_dims=[c2]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.enc_2.append(block)
             self.add_module(f"Encoder_L2_DiffusionNetBlock_{i}", block)
 
         # Level 3
-        self.enc_lin_3 = nn.Linear(c2, c3)
-        self.enc_3 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c3,
-                                            mlp_hidden_dims=[c3]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.enc_3):
+        self.enc_lin_3 = nn.Sequential(
+            nn.Linear(c2, c3),
+            nn.ReLU()
+        )
+        self.enc_3 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c3,
+                                                    mlp_hidden_dims=[c3]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.enc_3.append(block)
             self.add_module(f"Encoder_L3_DiffusionNetBlock_{i}", block)
 
         #----- Middle -----
-        self.enc_lin_m = nn.Linear(c3, c_m)
-        self.mid = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c_m,
-                                            mlp_hidden_dims=[c_m]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.mid):
+        self.enc_lin_m = nn.Sequential(
+            nn.Linear(c3, c_m),
+            nn.ReLU()
+        )
+        self.mid = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c_m,
+                                                    mlp_hidden_dims=[c_m]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.mid.append(block)
             self.add_module(f"Middle_DiffusionNetBlock_{i}", block)
 
         #----- Decoder -----
         # Level 3
-        self.dec_lin_30 = nn.Linear(c_m, c3)
-        self.dec_lin_31 = nn.Linear(c3*2, c3)
-        self.dec_3 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c3,
-                                            mlp_hidden_dims=[c3]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.dec_3):
+        self.dec_lin_30 = nn.Sequential(
+            nn.Linear(c_m, c3),
+            nn.ReLU()
+        )
+        self.dec_lin_31 = nn.Sequential(
+            nn.Linear(c3*2, c3),
+            nn.ReLU()
+        )
+        self.dec_3 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c3,
+                                                    mlp_hidden_dims=[c3]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.dec_3.append(block)
             self.add_module(f"Decoder_L3_DiffusionNetBlock_{i}", block)
 
         # Level 2
-        self.dec_lin_20 = nn.Linear(c3, c2)
-        self.dec_lin_21 = nn.Linear(c2*2, c2)
-        self.dec_2 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c2,
-                                            mlp_hidden_dims=[c2]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.dec_2):
+        self.dec_lin_20 = nn.Sequential(
+            nn.Linear(c3, c2),
+            nn.ReLU()
+        )
+        self.dec_lin_21 = nn.Sequential(
+            nn.Linear(c2*2, c2),
+            nn.ReLU()
+        )
+        self.dec_2 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c2,
+                                                    mlp_hidden_dims=[c2]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.dec_2.append(block)
             self.add_module(f"Decoder_L2_DiffusionNetBlock_{i}", block)
 
-       # Level 1
-        self.dec_lin_10 = nn.Linear(c2, c1)
-        self.dec_lin_11 = nn.Linear(c1*2, c1)
-        self.dec_1 = [
-            DiffNetLayers.DiffusionNetBlock(C_width=c1,
-                                            mlp_hidden_dims=[c1]*n_mlp_hidden,
-                                            dropout=dropout,
-                                            diffusion_method='spectral',
-                                            with_gradient_features=True, 
-                                            with_gradient_rotations=True)
-        ] * n_diffnet_blocks
-        for i, block in enumerate(self.dec_1):
+        # Level 1
+        self.dec_lin_10 = nn.Sequential(
+            nn.Linear(c2, c1),
+            nn.ReLU()
+        )
+        self.dec_lin_11 = nn.Sequential(
+            nn.Linear(c1*2, c1),
+            nn.ReLU()
+        )
+        self.dec_1 = []
+        for i in range(n_diffnet_blocks):
+            block = DiffNetLayers.DiffusionNetBlock(C_width=c1,
+                                                    mlp_hidden_dims=[c1]*n_mlp_hidden,
+                                                    dropout=dropout,
+                                                    diffusion_method='spectral',
+                                                    with_gradient_features=True,
+                                                    with_gradient_rotations=True)
+            self.dec_1.append(block)
             self.add_module(f"Decoder_L1_DiffusionNetBlock_{i}", block)
 
-       # # Level 0
-       #  self.dec_lin_00 = nn.Linear(c1, c0)
-       #  self.dec_lin_01 = nn.Linear(c0*2, c0)
-       #  self.dec_0 = [
-       #      DiffNetLayers.DiffusionNetBlock(C_width=c0,
-       #                                      mlp_hidden_dims=[c0]*n_mlp_hidden,
-       #                                      dropout=dropout,
-       #                                      diffusion_method='spectral',
-       #                                      with_gradient_features=True, 
-       #                                      with_gradient_rotations=True)
-       #  ] * n_diffnet_blocks
-       #  for i, block in enumerate(self.dec_0):
-       #      self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", block)
+        # # Level 0
+        # self.dec_lin_00 = nn.Sequential(
+        #     nn.Linear(c1, c0),
+        #     nn.ReLU()
+        # )
+        # self.dec_lin_01 = nn.Sequential(
+        #     nn.Linear(c0*2, c0),
+        #     nn.ReLU()
+        # )
+        # self.dec_0 = []
+        # for i in range(n_diffnet_blocks):
+        #     block = DiffNetLayers.DiffusionNetBlock(C_width=c0,
+        #                                             mlp_hidden_dims=[c0]*n_mlp_hidden,
+        #                                             dropout=dropout,
+        #                                             diffusion_method='spectral',
+        #                                             with_gradient_features=True,
+        #                                             with_gradient_rotations=True)
+        #     self.dec_0.append(block)
+        #     self.add_module(f"Decoder_L0_DiffusionNetBlock_{i}", block)
 
         #----- Output -----
         # self.output_lin = nn.Linear(c0, c_out)
