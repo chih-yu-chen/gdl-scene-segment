@@ -116,7 +116,6 @@ num_params = 0
 for names, params in model.named_parameters():
     if params.requires_grad:
         print(names)
-        print(params)
         num_params += params.numel()
 print(f"number of parameters: {num_params}")
 
