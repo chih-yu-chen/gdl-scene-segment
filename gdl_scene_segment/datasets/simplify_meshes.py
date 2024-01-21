@@ -196,7 +196,7 @@ if __name__ == "__main__":
     # level_params = [0.04, 0.08, 0.16, 0.32] DCM-Net VC
     # level_params = [0.02, 30, 30, 30] Ours
 
-    split_dir = Path("splits")
+    split_dir = Path(__file__).parent/ "splits"
     if args.test:
         with open(split_dir/ "scannetv2_test.txt", 'r') as f:
             scenes = f.read().splitlines()

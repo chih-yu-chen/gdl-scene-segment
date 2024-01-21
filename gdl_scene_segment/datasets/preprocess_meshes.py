@@ -71,7 +71,7 @@ if __name__ == '__main__':
     (dst_dir/ "labels").mkdir(parents=True, exist_ok=True)
 
     # read scene list
-    split_dir = Path("splits")
+    split_dir = Path(__file__).parent/ "splits"
     if args.test:
         with open(split_dir/ "scannetv2_test.txt", 'r') as f:
             scenes = f.read().splitlines()
