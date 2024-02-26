@@ -534,8 +534,8 @@ if train:
         scheduler.step()
 
         print(f"Epoch {epoch}")
-        print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]}")
-        print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
+        print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]:.4f}")
+        print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
 
         with open(model_path.with_name("train_iou.csv"), 'ab') as f:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
@@ -552,4 +552,4 @@ if train:
     print(" ==> last model saved")
 
 val_loss, val_ious = val(save_pred=True)
-print(f"Overall Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
+print(f"Overall Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
