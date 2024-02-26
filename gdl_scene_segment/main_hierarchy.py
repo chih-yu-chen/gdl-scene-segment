@@ -86,6 +86,7 @@ checkpt_every = settings.training.checkpt_every
 
 # augmentation settings
 random_rotate = settings.training.augment.rotate
+other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
 
@@ -192,20 +193,21 @@ def train_epoch():
         norm_max = np.linalg.norm(verts_0, axis=-1).max()
 
         # augmentation
-        rot_mat = utils.random_rotate_points_z()
-        offset = utils.random_translate(scale=translate_scale)
-        sign = utils.random_flip()
-        scale = utils.random_scale(scaling_range=scaling_range)
-
         if random_rotate:
+            rot_mat = utils.random_rotate_points_z()
             verts_0 = torch.matmul(verts_0, rot_mat)
             verts_1 = torch.matmul(verts_1, rot_mat)
-        verts_0 += offset
-        verts_0[:,0] *= sign
-        verts_0 *= scale
-        verts_1 += offset
-        verts_1[:,0] *= sign
-        verts_1 *= scale
+
+        if other_augment:
+            offset = utils.random_translate(scale=translate_scale)
+            verts_0 += offset
+            verts_1 += offset
+            sign = utils.random_flip()
+            verts_1[:,0] *= sign
+            verts_0[:,0] *= sign
+            scale = utils.random_scale(scaling_range=scaling_range)
+            verts_0 *= scale
+            verts_1 *= scale
 
         # sparse-voxelize vertices
         voxels = verts_0.detach().numpy()
@@ -219,14 +221,15 @@ def train_epoch():
         verts_1 = verts_1 / norm_max
 
         # rgb features
-        rgb_shape = rgb_0.shape
-        jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
-        rgb_0 += jitter
-        rgb_0 = torch.clamp(rgb_0, min=0, max=1)
+        if other_augment:
+            rgb_shape = rgb_0.shape
+            jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
+            rgb_0 += jitter
+            rgb_0 = torch.clamp(rgb_0, min=0, max=1)
 
-        jitter = scatter_mean(torch.tensor(jitter), traces01, dim=-2)
-        rgb_1 += jitter
-        rgb_1 = torch.clamp(rgb_1, min=0, max=1)
+            jitter = scatter_mean(torch.tensor(jitter), traces01, dim=-2)
+            rgb_1 += jitter
+            rgb_1 = torch.clamp(rgb_1, min=0, max=1)
 
         rgb_vox = torch.tensor(rgb_0[vox_idx], dtype=torch.float)
 
@@ -520,11 +523,14 @@ if train:
         f.write(class_names)
     with open(model_path.with_name("val_iou.csv"), 'w') as f:
         f.write(class_names)
+    with open(model_path.with_name("metrics.csv"), 'w') as f:
+        f.write("Train_Loss,Val_Loss,Train_mIoU,Val_mIoU\n")
 
     for epoch in range(n_epoch):
 
         train_loss, train_ious = train_epoch()
         val_loss, val_ious = val()
+        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         scheduler.step()
 
         print(f"Epoch {epoch}")
@@ -532,15 +538,14 @@ if train:
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
 
         with open(model_path.with_name("train_iou.csv"), 'ab') as f:
-            np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
+            np.savetxt(f, train_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
         with open(model_path.with_name("val_iou.csv"), 'ab') as f:
-            np.savetxt(f, val_ious[np.newaxis,:], delimiter=',')
-        with open(model_path.with_name("loss.csv"), 'a') as f:
-            f.write(str(train_loss)+",")
-            f.write(str(val_loss)+"\n")
+            np.savetxt(f, val_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
+        with open(model_path.with_name("metrics.csv"), 'ab') as f:
+            np.savetxt(f, metrics[np.newaxis,:], delimiter=',', fmt='%.4f')
         
         if (epoch+1) % checkpt_every == 0:
-            torch.save(m.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
+            torch.save(m.state_dict(), model_path.with_stem(f"checkpoint{epoch+1:03d}"))
             print(" ==> model checkpoint saved")
 
     torch.save(m.state_dict(), model_path)

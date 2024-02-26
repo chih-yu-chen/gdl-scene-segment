@@ -79,6 +79,7 @@ checkpt_every = settings.training.checkpt_every
 
 # augmentation settings
 random_rotate = settings.training.augment.rotate
+other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
 
@@ -158,25 +159,27 @@ def train_epoch():
         norm_max = np.linalg.norm(verts, axis=-1).max()
 
         # augmentation
-        rot_mat = utils.random_rotate_points_z()
-        offset = utils.random_translate(scale=translate_scale)
-        sign = utils.random_flip()
-        scale = utils.random_scale(scaling_range=scaling_range)
-
         if random_rotate:
+            rot_mat = utils.random_rotate_points_z()
             verts = torch.matmul(verts, rot_mat)
-        verts += offset
-        verts[:,0] *= sign
-        verts *= scale
+
+        if other_augment:
+            offset = utils.random_translate(scale=translate_scale)
+            verts += offset
+            sign = utils.random_flip()
+            verts[:,0] *= sign
+            scale = utils.random_scale(scaling_range=scaling_range)
+            verts *= scale
 
         # normalize
         verts = verts / norm_max
 
         # rgb features
-        rgb_shape = rgb.shape
-        jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
-        rgb += jitter
-        rgb = torch.clamp(rgb, min=0, max=1)
+        if other_augment:
+            rgb_shape = rgb.shape
+            jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
+            rgb += jitter
+            rgb = torch.clamp(rgb, min=0, max=1)
 
         # construct features
         if input_features == 'xyz':
@@ -306,11 +309,14 @@ if train:
         f.write(class_names)
     with open(model_path.with_name("val_iou.csv"), 'w') as f:
         f.write(class_names)
+    with open(model_path.with_name("metrics.csv"), 'w') as f:
+        f.write("Train_Loss,Val_Loss,Train_mIoU,Val_mIoU\n")
 
     for epoch in range(n_epoch):
 
         train_loss, train_ious = train_epoch()
         val_loss, val_ious = val()
+        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         scheduler.step()
 
         print(f"Epoch {epoch}")
@@ -318,15 +324,14 @@ if train:
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]}")
 
         with open(model_path.with_name("train_iou.csv"), 'ab') as f:
-            np.savetxt(f, train_ious[np.newaxis,:], delimiter=',')
+            np.savetxt(f, train_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
         with open(model_path.with_name("val_iou.csv"), 'ab') as f:
-            np.savetxt(f, val_ious[np.newaxis,:], delimiter=',')
-        with open(model_path.with_name("loss.csv"), 'a') as f:
-            f.write(str(train_loss)+",")
-            f.write(str(val_loss)+"\n")
+            np.savetxt(f, val_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
+        with open(model_path.with_name("metrics.csv"), 'ab') as f:
+            np.savetxt(f, metrics[np.newaxis,:], delimiter=',', fmt='%.4f')
         
         if (epoch+1) % checkpt_every == 0:
-            torch.save(model.state_dict(), model_path.with_stem(f"checkpoint{epoch+1}"))
+            torch.save(model.state_dict(), model_path.with_stem(f"checkpoint{epoch+1:03d}"))
             print(" ==> model checkpoint saved")
 
     torch.save(model.state_dict(), model_path)
