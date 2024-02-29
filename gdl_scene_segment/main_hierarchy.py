@@ -520,9 +520,9 @@ if train:
     print("Training...")
 
     with open(model_path.with_name("train_iou.csv"), 'w') as f:
-        f.write(class_names)
+        f.write(class_names+"\n")
     with open(model_path.with_name("val_iou.csv"), 'w') as f:
-        f.write(class_names)
+        f.write(class_names+"\n")
     with open(model_path.with_name("metrics.csv"), 'w') as f:
         f.write("Train_Loss,Val_Loss,Train_mIoU,Val_mIoU\n")
 

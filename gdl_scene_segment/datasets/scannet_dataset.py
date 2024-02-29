@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torch_scatter import scatter_mean
 
 import potpourri3d as pp3d
 
@@ -19,12 +20,14 @@ class ScanNetDataset(Dataset):
                  train:bool,
                  data_dir:Path,
                  preprocess:str,
+                 mesh_simplify_level:int,
                  k_eig:int,
                  op_cache_dir:Path):
 
         self.train = train
         self.data_dir = data_dir/ preprocess
         self.preprocess = preprocess
+        self.simp_lv = mesh_simplify_level
         self.k_eig = k_eig
         self.op_cache_dir = op_cache_dir/ preprocess
         self.classes = np.asarray([1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
@@ -51,40 +54,88 @@ class ScanNetDataset(Dataset):
 
         scene = self.scene_list[idx]
 
-        # load mesh
-        mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
-        verts, faces = pp3d.read_mesh(mesh_path.as_posix())
-        verts = torch.tensor(np.ascontiguousarray(verts)).float()
-        faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
+        if self.simp_lv == 0:
 
-        # unit scale
-        scale = np.linalg.norm(verts, axis=-1).max()
-        verts = verts / scale
+            # load mesh
+            mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
+            verts, faces = pp3d.read_mesh(mesh_path.as_posix())
+            verts = torch.tensor(np.ascontiguousarray(verts)).float()
+            faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
 
-        # load operators
-        _, mass, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
+            # unit scale
+            scale = np.linalg.norm(verts, axis=-1).max()
+            verts = verts / scale
 
-        # scale back
-        verts = verts * scale
+            # load operators
+            _, mass, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
 
-        # load labels
-        label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
-        labels = np.loadtxt(label_path, dtype=np.int8)
-        labels = self.label_map[labels]
-        labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+            # scale back
+            verts = verts * scale
 
-        # load rgb
-        rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
-        rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
-        rgb = rgb / 255.
-        rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
+            # load labels
+            label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
+            labels = np.loadtxt(label_path, dtype=np.int8)
+            labels = self.label_map[labels]
+            labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
 
-        # load idx
-        if not self.preprocess == "centered":
-            idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
-            ref_idx = np.loadtxt(idx_path, dtype=np.int64)
-        else:
-            ref_idx = np.arange(verts.shape[0], dtype=np.int64)
-        ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
+            # load rgb
+            rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
+            rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
+            rgb = rgb / 255.
+            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
 
-        return scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx
+            # load idx
+            if not self.preprocess == "centered":
+                idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
+                ref_idx = np.loadtxt(idx_path, dtype=np.int64)
+            else:
+                ref_idx = np.arange(verts.shape[0], dtype=np.int64)
+            ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
+
+            return scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx
+
+        if self.simp_lv > 0:
+
+            # load mesh
+            mesh_path = self.data_dir/ "hierarchy"/ "scenes"/ f"{scene}_vh_clean_2_{self.simp_lv}.ply"
+            verts, faces = pp3d.read_mesh(mesh_path.as_posix())
+            verts = torch.tensor(np.ascontiguousarray(verts)).float()
+            faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
+
+            # unit scale
+            scale = np.linalg.norm(verts, axis=-1).max()
+            verts = verts / scale
+
+            # load operators
+            _, mass, L, evals, evecs, gradX, gradY = diffusion_net.geometry.get_operators(verts, faces, self.k_eig, self.op_cache_dir)
+
+            # scale back
+            verts = verts * scale
+
+            # load traces
+            trace_path = self.data_dir/ "hierarchy"/ "traces"/ f"{scene}_traces01.txt"
+            traces = np.loadtxt(trace_path, dtype=np.int64)
+            traces = torch.tensor(np.ascontiguousarray(traces.astype(np.int64)))
+
+            # load labels
+            label_path = self.data_dir/ "hierarchy"/ "labels"/ f"{scene}_labels1.txt"
+            labels = np.loadtxt(label_path, dtype=np.int8)
+            labels = self.label_map[labels]
+            labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+
+            # load rgb
+            rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
+            rgb = np.loadtxt(rgb_path, delimiter=',', dtype=np.uint8)
+            rgb = rgb / 255.
+            rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
+            rgb = scatter_mean(rgb, traces, dim=-2)
+
+            # load idx
+            if not self.preprocess == "centered":
+                idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
+                ref_idx = np.loadtxt(idx_path, dtype=np.int64)
+            else:
+                ref_idx = np.arange(verts.shape[0], dtype=np.int64)
+            ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
+
+            return scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx

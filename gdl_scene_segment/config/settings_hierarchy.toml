@@ -7,11 +7,16 @@ preprocess = "centered"
 [model]
 mesh_simplify_level = 0
 input_features = 'xyzrgb'
+n_levels = 4
 k_eig = 128
 n_diffnet_blocks = 2
 n_mlp_hidden = 2
 dropout = true
 c0 = 32
+c1 = 32
+c2 = 64
+c3 = 96
+c_m = 128
 
 [training]
 n_epoch = 200
