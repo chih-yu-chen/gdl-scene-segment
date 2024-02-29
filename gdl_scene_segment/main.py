@@ -54,6 +54,7 @@ class_names = settings.data.class_names
 
 
 # model settings
+mesh_simplify_level = settings.model.mesh_simplify_level
 input_features = settings.model.input_features
 k_eig = settings.model.k_eig
 op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
@@ -89,6 +90,7 @@ scaling_range = settings.training.augment.scaling_range
 val_dataset = ScanNetDataset(train=False,
                              data_dir=data_dir,
                              preprocess=preprocess,
+                             mesh_simplify_level=mesh_simplify_level,
                              k_eig=k_eig,
                              op_cache_dir=op_cache_dir)
 val_loader = DataLoader(val_dataset, batch_size=None)
@@ -97,6 +99,7 @@ if train:
     train_dataset = ScanNetDataset(train=True,
                                    data_dir=data_dir,
                                    preprocess=preprocess,
+                                   mesh_simplify_level=mesh_simplify_level,
                                    k_eig=k_eig,
                                    op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
