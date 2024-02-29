@@ -146,7 +146,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, g
 # the training epoch
 def train_epoch():
 
-    # set model to 'train' mode
     model.train()
 
     total_loss = 0

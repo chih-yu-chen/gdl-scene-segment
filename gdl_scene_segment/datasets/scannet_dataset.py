@@ -105,7 +105,6 @@ class ScanNetDataset(Dataset):
             # unit scale
             with open(self.data_dir/ "hierarchy"/ "norm_max"/ f"{scene}_norm_max.txt", 'r') as f:
                 scale = float(f.read())
-            # scale = np.linalg.norm(verts, axis=-1).max()
             verts = verts / scale
 
             # load operators
@@ -114,16 +113,16 @@ class ScanNetDataset(Dataset):
             # scale back
             verts = verts * scale
 
-            # load traces
-            trace_path = self.data_dir/ "hierarchy"/ "traces"/ f"{scene}_traces01.txt"
-            traces = np.loadtxt(trace_path, dtype=np.int64)
-            traces = torch.tensor(np.ascontiguousarray(traces.astype(np.int64)))
-
             # load labels
             label_path = self.data_dir/ "hierarchy"/ "labels"/ f"{scene}_labels1.txt"
             labels = np.loadtxt(label_path, dtype=np.int8)
             labels = self.label_map[labels]
             labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+
+            # load traces
+            trace_path = self.data_dir/ "hierarchy"/ "traces"/ f"{scene}_traces01.txt"
+            traces = np.loadtxt(trace_path, dtype=np.int64)
+            traces = torch.tensor(np.ascontiguousarray(traces.astype(np.int64)))
 
             # load rgb
             rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"

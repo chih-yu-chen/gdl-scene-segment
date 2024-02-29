@@ -156,7 +156,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, g
 # the training epoch
 def train_epoch():
 
-    # set model to 'train' mode
     m.train()
 
     total_loss = 0
@@ -404,7 +403,7 @@ def val(save_pred=False):
             elif input_features == 'xyzrgb':
                 x_in = torch.hstack((verts_1, rgb_1)).float()
             elif input_features == 'hks':
-                x_in = diffusion_net.geometry.compute_hks_autoscale(evals_0, evecs_0, 16)
+                x_in = diffusion_net.geometry.compute_hks_autoscale(evals_1, evecs_1, 16)
 
             # move to device
             x_in = x_in.to(device)
