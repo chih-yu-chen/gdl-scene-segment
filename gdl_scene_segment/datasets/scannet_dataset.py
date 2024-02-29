@@ -103,7 +103,9 @@ class ScanNetDataset(Dataset):
             faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
 
             # unit scale
-            scale = np.linalg.norm(verts, axis=-1).max()
+            with open(self.data_dir/ "hierarchy"/ "norm_max"/ f"{scene}_norm_max.txt", 'r') as f:
+                scale = float(f.read())
+            # scale = np.linalg.norm(verts, axis=-1).max()
             verts = verts / scale
 
             # load operators

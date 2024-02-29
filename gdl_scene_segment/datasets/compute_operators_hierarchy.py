@@ -30,6 +30,8 @@ if __name__ == "__main__":
     # paths
     data_dir = Path(args.data_dir, args.preprocess)
     hierarchy_dir = data_dir/ "hierarchy"
+    normmax_dir = hierarchy_dir/ "norm_max"
+    normmax_dir.mkdir(parents=True, exist_ok=True)
     op_cache_dir = data_dir.parent/ "diffusion-net"/ f"op_cache_{k_eig}"/ args.preprocess
     op_cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -60,6 +62,8 @@ if __name__ == "__main__":
 
         # unit scale
         scale = np.linalg.norm(verts[0], axis=-1).max()
+        with open(normmax_dir/ f"{scene}_norm_max.txt", 'w') as f:
+            f.write(str(scale))
         verts = [v / scale for v in verts]
         # verts = [diffusion_net.geometry.normalize_positions(v) for v in verts]
 
