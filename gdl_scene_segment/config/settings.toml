@@ -11,7 +11,7 @@ k_eig = 128
 n_diffnet_blocks = 2
 n_mlp_hidden = 2
 dropout = true
-c0 = 32
+c0 = 128
 
 [training]
 n_epoch = 200
