@@ -305,7 +305,6 @@ class GeodesicBranch(nn.Module):
             nn.Linear(c3*2, c3),
             nn.ReLU()
         )
-        self.skip_linear_3 = nn.Linear(c3, c3, bias=False)
         self.dec_diffusion_3 = []
         for i in range(n_diffnet_blocks):
             block = DiffNetLayers.DiffusionNetBlock(C_width=c3,
@@ -326,7 +325,6 @@ class GeodesicBranch(nn.Module):
             nn.Linear(c2*2, c2),
             nn.ReLU()
         )
-        self.skip_linear_2 = nn.Linear(c2, c2, bias=False)
         self.dec_diffusion_2 = []
         for i in range(n_diffnet_blocks):
             block = DiffNetLayers.DiffusionNetBlock(C_width=c2,
@@ -347,7 +345,6 @@ class GeodesicBranch(nn.Module):
             nn.Linear(c1*2, c1),
             nn.ReLU()
         )
-        self.skip_linear_1 = nn.Linear(c1, c1, bias=False)
         self.dec_diffusion_1 = []
         for i in range(n_diffnet_blocks):
             block = DiffNetLayers.DiffusionNetBlock(C_width=c1,
@@ -368,7 +365,6 @@ class GeodesicBranch(nn.Module):
         #     nn.Linear(c0*2, c0),
         #     nn.ReLU()
         # )
-        # self.skip_linear_0 = nn.Linear(c0, c0, bias=False)
         # self.dec_diffusion_0 = []
         # for i in range(n_diffnet_blocks):
         #     block = DiffNetLayers.DiffusionNetBlock(C_width=c0,
@@ -402,7 +398,6 @@ class GeodesicBranch(nn.Module):
         # x_enc0 = self.enc_diffusion_0[0](x_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
         # for block in self.enc_diffusion_0[1:]:
         #     x_enc0 = block(x_enc0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        # x_enc0 = x_enc0 + x_0
         # x_1, _ = scatter_max(x_enc0, traces01, dim=-2)
         
         # Level 1
@@ -410,7 +405,6 @@ class GeodesicBranch(nn.Module):
         x_enc1 = self.enc_diffusion_1[0](x_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
         for block in self.enc_diffusion_1[1:]:
             x_enc1 = block(x_enc1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
-        x_enc1 = x_enc1 + x_1
         x_2, _ = scatter_max(x_enc1, traces12, dim=-2)
 
         # Level 2
@@ -418,7 +412,6 @@ class GeodesicBranch(nn.Module):
         x_enc2 = self.enc_diffusion_2[0](x_2, mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2)
         for block in self.enc_diffusion_2[1:]:
             x_enc2 = block(x_enc2, mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2)
-        x_enc2 = x_enc2 + x_2
         x_3, _ = scatter_max(x_enc2, traces23, dim=-2)
 
         # Level 3
@@ -426,7 +419,6 @@ class GeodesicBranch(nn.Module):
         x_enc3 = self.enc_diffusion_3[0](x_3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
         for block in self.enc_diffusion_3[1:]:
             x_enc3 = block(x_enc3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
-        x_enc3 = x_enc3 + x_3
         x_m, _ = scatter_max(x_enc3, traces34, dim=-2)
 
         #----- Middle -----
@@ -434,7 +426,6 @@ class GeodesicBranch(nn.Module):
         x_mid = self.mid_diffusion[0](x_m, mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m)
         for block in self.mid_diffusion[1:]:
             x_mid = block(x_mid, mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m)
-        x_mid = x_mid + x_m
 
         #----- Decoder -----
         # Level 3
@@ -445,7 +436,6 @@ class GeodesicBranch(nn.Module):
         y_dec3 = self.dec_diffusion_3[0](y_3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
         for block in self.dec_diffusion_3[1:]:
             y_dec3 = block(y_dec3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
-        y_dec3 = y_dec3 + self.skip_linear_3(y_3)
 
         # Level 2
         y_2 = y_dec3[:,traces23,:]
@@ -455,7 +445,6 @@ class GeodesicBranch(nn.Module):
         y_dec2 = self.dec_diffusion_2[0](y_2, mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2)
         for block in self.dec_diffusion_2[1:]:
             y_dec2 = block(y_dec2, mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2)
-        y_dec2 = y_dec2 + self.skip_linear_2(y_2)
 
         # Level 1
         y_1 = y_dec2[:,traces12,:]
@@ -465,7 +454,6 @@ class GeodesicBranch(nn.Module):
         y_dec1 = self.dec_diffusion_1[0](y_1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
         for block in self.dec_diffusion_1[1:]:
             y_dec1 = block(y_dec1, mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1)
-        y_dec1 = y_dec1 + self.skip_linear_1(y_1)
 
         # # Level 0
         # y_0 = y_dec1[:,traces01,:]
@@ -475,7 +463,6 @@ class GeodesicBranch(nn.Module):
         # y_dec0 = self.dec_diffusion_0[0](y_0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
         # for block in self.dec_diffusion_0[1:]:
         #     y_dec0 = block(y_dec0, mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0)
-        # y_dec0 = y_dec0 + self.skip_linear_0(y_0)
 
         #----- Output -----
         # y = self.output_linear(y_dec0)
