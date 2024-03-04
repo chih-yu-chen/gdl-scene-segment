@@ -79,7 +79,7 @@ class ScanNetHierarchyDataset(Dataset):
         evecs = []
         gradX = []
         gradY = []
-        for v, f in zip(verts[1:], faces[1:]):
+        for v, f in zip(verts, faces):
             ops = diffusion_net.geometry.get_operators(v, f, self.k_eig, self.op_cache_dir)
             mass.append(ops[1])
             L.append(ops[2])
