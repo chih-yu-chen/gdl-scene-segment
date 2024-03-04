@@ -202,8 +202,8 @@ def train_epoch():
             verts_0 += offset
             verts_1 += offset
             sign = utils.random_flip()
-            verts_1[:,0] *= sign
             verts_0[:,0] *= sign
+            verts_1[:,0] *= sign
             scale = utils.random_scale(scaling_range=scaling_range)
             verts_0 *= scale
             verts_1 *= scale
