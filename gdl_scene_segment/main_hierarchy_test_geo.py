@@ -171,6 +171,8 @@ def train_epoch():
         gradX_3, gradX_m = gradX
         gradY_3, gradY_m = gradY
 
+        labels_0, labels_1 = labels
+
         traces01, traces12 = traces
 
         # augmentation
@@ -243,7 +245,8 @@ def train_epoch():
         gradY_3 = gradY_3.to(device)
         gradY_m = gradY_m.to(device)
 
-        labels = labels.to(device)
+        labels_0 = labels_0.to(device)
+        labels_1 = labels_1.to(device)
 
         traces01 = traces01.to(device)
         traces12 = traces12.to(device)
@@ -274,7 +277,7 @@ def train_epoch():
         geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                      ).put_(ref_idx, geo_preds)
         gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-                     ).put_(ref_idx, labels.cpu())
+                     ).put_(ref_idx, labels_0.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
         tps += this_tps
         fps += this_fps
@@ -312,6 +315,8 @@ def val(save_pred=False):
             evecs_3, evecs_m = evecs
             gradX_3, gradX_m = gradX
             gradY_3, gradY_m = gradY
+
+            labels_0, labels_1 = labels
 
             traces01, traces12 = traces
 
@@ -365,7 +370,8 @@ def val(save_pred=False):
             gradY_3 = gradY_3.to(device)
             gradY_m = gradY_m.to(device)
 
-            labels = labels.to(device)
+            labels_0 = labels_0.to(device)
+            labels_1 = labels_1.to(device)
 
             traces01 = traces01.to(device)
             traces12 = traces12.to(device)
@@ -395,7 +401,7 @@ def val(save_pred=False):
             geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                          ).put_(ref_idx, geo_preds)
             gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
-                         ).put_(ref_idx, labels.cpu())
+                         ).put_(ref_idx, labels_0.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
             tps += this_tps
             fps += this_fps
