@@ -267,7 +267,7 @@ def train_epoch():
         )
 
         # evaluate loss
-        loss = loss_f(geo_out, labels)
+        loss = loss_f(geo_out, labels_1)
         total_loss += loss.item()
         loss.backward()
         
@@ -392,7 +392,7 @@ def val(save_pred=False):
             )
 
             # track loss
-            loss = loss_f(geo_out, labels)
+            loss = loss_f(geo_out, labels_1)
             total_loss += loss.item()
 
             # track accuracy
