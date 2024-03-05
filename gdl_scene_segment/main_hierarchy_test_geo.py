@@ -3,14 +3,8 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from torch_scatter import scatter_mean
-from torchsparse.utils.quantize import sparse_quantize
 from tqdm import tqdm
 
-import sys
-pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
-sys.path.append(pkg_path.as_posix())
-import diffusion_net
 from datasets.scannet_hierarchy_dataset_test_geo import ScanNetHierarchyDataset
 from model import model_test_geo, utils
 from config.config import settings
@@ -68,7 +62,7 @@ c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 c_out = n_class
 # c1 = settings.model.c1
 # c2 = settings.model.c2
-c3 = settings.model.c3
+# c3 = settings.model.c3
 c_m = settings.model.c_m
 loss_f = torch.nn.functional.cross_entropy
 
@@ -117,7 +111,7 @@ m = model_test_geo.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
                                      dropout=dropout,
                                      c_in=c_in,
                                      c_out=c_out,
-                                     c3=c3,
+                                    #  c3=c3,
                                      c_m=c_m
 )
 
@@ -164,16 +158,7 @@ def train_epoch():
     for i, (_, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max) in enumerate(tqdm(train_loader)):
 
         # unpack lists
-        mass_3, mass_m = mass
-        L_3, L_m = L
-        evals_3, evals_m = evals
-        evecs_3, evecs_m = evecs
-        gradX_3, gradX_m = gradX
-        gradY_3, gradY_m = gradY
-
         labels_0, labels_1 = labels
-
-        traces01, traces12 = traces
 
         # augmentation
         if random_rotate:
@@ -212,44 +197,44 @@ def train_epoch():
         # mass_0 = mass_0.to(device)
         # mass_1 = mass_1.to(device)
         # mass_2 = mass_2.to(device)
-        mass_3 = mass_3.to(device)
-        mass_m = mass_m.to(device)
+        # mass_3 = mass_3.to(device)
+        mass = mass.to(device)
 
         # L_0 = L_0.to(device)
         # L_1 = L_1.to(device)
         # L_2 = L_2.to(device)
-        L_3 = L_3.to(device)
-        L_m = L_m.to(device)
+        # L_3 = L_3.to(device)
+        L = L.to(device)
 
         # evals_0 = evals_0.to(device)
         # evals_1 = evals_1.to(device)
         # evals_2 = evals_2.to(device)
-        evals_3 = evals_3.to(device)
-        evals_m = evals_m.to(device)
+        # evals_3 = evals_3.to(device)
+        evals = evals.to(device)
 
         # evecs_0 = evecs_0.to(device)
         # evecs_1 = evecs_1.to(device)
         # evecs_2 = evecs_2.to(device)
-        evecs_3 = evecs_3.to(device)
-        evecs_m = evecs_m.to(device)
+        # evecs_3 = evecs_3.to(device)
+        evecs = evecs.to(device)
 
         # gradX_0 = gradX_0.to(device)
         # gradX_1 = gradX_1.to(device)
         # gradX_2 = gradX_2.to(device)
-        gradX_3 = gradX_3.to(device)
-        gradX_m = gradX_m.to(device)
+        # gradX_3 = gradX_3.to(device)
+        gradX = gradX.to(device)
 
         # gradY_0 = gradY_0.to(device)
         # gradY_1 = gradY_1.to(device)
         # gradY_2 = gradY_2.to(device)
-        gradY_3 = gradY_3.to(device)
-        gradY_m = gradY_m.to(device)
+        # gradY_3 = gradY_3.to(device)
+        gradY = gradY.to(device)
 
         labels_0 = labels_0.to(device)
         labels_1 = labels_1.to(device)
 
-        traces01 = traces01.to(device)
-        traces12 = traces12.to(device)
+        traces = traces.to(device)
+        # traces12 = traces12.to(device)
         # traces23 = traces23.to(device)
         # traces34 = traces34.to(device)
         
@@ -259,9 +244,9 @@ def train_epoch():
             # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
             # mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
             # mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-            mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-            mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-            traces12,
+            # mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+            mass, L, evals, evecs, gradX, gradY,
+            # traces12,
             # traces23,
             # traces34
         )
@@ -273,7 +258,7 @@ def train_epoch():
         
         # track accuracy
         geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-        geo_preds = geo_preds[traces01.cpu()]
+        geo_preds = geo_preds[traces.cpu()]
         geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                      ).put_(ref_idx, geo_preds)
         gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
@@ -309,16 +294,7 @@ def val(save_pred=False):
         for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max in tqdm(val_loader):
 
             # unpack lists
-            mass_3, mass_m = mass
-            L_3, L_m = L
-            evals_3, evals_m = evals
-            evecs_3, evecs_m = evecs
-            gradX_3, gradX_m = gradX
-            gradY_3, gradY_m = gradY
-
             labels_0, labels_1 = labels
-
-            traces01, traces12 = traces
 
             # normalize
             verts = verts / norm_max
@@ -337,44 +313,44 @@ def val(save_pred=False):
             # mass_0 = mass_0.to(device)
             # mass_1 = mass_1.to(device)
             # mass_2 = mass_2.to(device)
-            mass_3 = mass_3.to(device)
-            mass_m = mass_m.to(device)
+            # mass_3 = mass_3.to(device)
+            mass = mass.to(device)
 
             # L_0 = L_0.to(device)
             # L_1 = L_1.to(device)
             # L_2 = L_2.to(device)
-            L_3 = L_3.to(device)
-            L_m = L_m.to(device)
+            # L_3 = L_3.to(device)
+            L = L.to(device)
 
             # evals_0 = evals_0.to(device)
             # evals_1 = evals_1.to(device)
             # evals_2 = evals_2.to(device)
-            evals_3 = evals_3.to(device)
-            evals_m = evals_m.to(device)
+            # evals_3 = evals_3.to(device)
+            evals = evals.to(device)
 
             # evecs_0 = evecs_0.to(device)
             # evecs_1 = evecs_1.to(device)
             # evecs_2 = evecs_2.to(device)
-            evecs_3 = evecs_3.to(device)
-            evecs_m = evecs_m.to(device)
+            # evecs_3 = evecs_3.to(device)
+            evecs = evecs.to(device)
 
             # gradX_0 = gradX_0.to(device)
             # gradX_1 = gradX_1.to(device)
             # gradX_2 = gradX_2.to(device)
-            gradX_3 = gradX_3.to(device)
-            gradX_m = gradX_m.to(device)
+            # gradX_3 = gradX_3.to(device)
+            gradX = gradX.to(device)
 
             # gradY_0 = gradY_0.to(device)
             # gradY_1 = gradY_1.to(device)
             # gradY_2 = gradY_2.to(device)
-            gradY_3 = gradY_3.to(device)
-            gradY_m = gradY_m.to(device)
+            # gradY_3 = gradY_3.to(device)
+            gradY = gradY.to(device)
 
             labels_0 = labels_0.to(device)
             labels_1 = labels_1.to(device)
 
             traces01 = traces01.to(device)
-            traces12 = traces12.to(device)
+            # traces12 = traces12.to(device)
             # traces23 = traces23.to(device)
             # traces34 = traces34.to(device)
 
@@ -384,9 +360,9 @@ def val(save_pred=False):
                 # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
                 # mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
                 # mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-                mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-                mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-                traces12,
+                # mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
+                mass, L, evals, evecs, gradX, gradY,
+                # traces12,
                 # traces23,
                 # traces34
             )
@@ -397,7 +373,7 @@ def val(save_pred=False):
 
             # track accuracy
             geo_preds = torch.argmax(geo_out.cpu(), dim=-1)
-            geo_preds = geo_preds[traces01.cpu()]
+            geo_preds = geo_preds[traces.cpu()]
             geo_preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                          ).put_(ref_idx, geo_preds)
             gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
