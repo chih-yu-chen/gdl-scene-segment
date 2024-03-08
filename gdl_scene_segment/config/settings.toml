@@ -5,13 +5,21 @@ class_names = "mIoU,wall,floor,cabinet,bed,chair,sofa,table,door,window,bookshel
 preprocess = "centered"
 
 [model]
-mesh_simplify_level = 0
+mesh_simplify_level = 1
 input_features = 'xyzrgb'
 k_eig = 128
 n_diffnet_blocks = 4
 n_mlp_hidden = 2
 dropout = true
 c0 = 128
+
+[model.hierarchy]
+hierarchy = false
+n_levels = 4
+c1 = 32
+c2 = 64
+c3 = 96
+c_m = 128
 
 [training]
 n_epoch = 200

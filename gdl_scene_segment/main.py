@@ -89,7 +89,7 @@ scaling_range = settings.training.augment.scaling_range
 
 # w&b setup
 wandb.init(
-    project="baseline",
+    project="gdl_scene_segment",
     name=experiment,
     config=settings.to_dict()
 )

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torch_scatter import scatter_mean
 from torchsparse.utils.quantize import sparse_quantize
 from tqdm import tqdm
+import wandb
 
 import sys
 pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
@@ -17,6 +18,7 @@ from config.config import settings
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+wandb.login()
 
 
 
@@ -57,7 +59,6 @@ class_names = settings.data.class_names
 
 # model settings
 input_features = settings.model.input_features
-n_levels = settings.model.n_levels
 k_eig = settings.model.k_eig
 op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
 n_diffnet_blocks = settings.model.n_diffnet_blocks
@@ -66,12 +67,14 @@ dropout = settings.model.dropout
 
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 c_out = n_class
-c0 = settings.model.c0
-c1 = settings.model.c1
-c2 = settings.model.c2
-c3 = settings.model.c3
-c_m = settings.model.c_m
+
+n_levels = settings.model.hierarchy.n_levels
+c1 = settings.model.hierarchy.c1
+c2 = settings.model.hierarchy.c2
+c3 = settings.model.hierarchy.c3
+c_m = settings.model.hierarchy.c_m
 loss_f = torch.nn.functional.cross_entropy
+
 
 
 
@@ -90,6 +93,13 @@ random_rotate = settings.training.augment.rotate
 other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
+
+# w&b setup
+wandb.init(
+    project="gdl_scene_segment",
+    name=experiment,
+    config=settings.to_dict()
+)
 
 
 
@@ -530,9 +540,14 @@ if train:
 
         train_loss, train_ious = train_epoch()
         val_loss, val_ious = val()
-        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         scheduler.step()
 
+        wandb.log({
+            "train/loss": train_loss,
+            "train/mIoU": train_ious[0],
+            "val/loss": val_loss,
+            "val/mIoU": val_ious[0],
+        })
         print(f"Epoch {epoch}")
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
@@ -541,6 +556,7 @@ if train:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
         with open(model_path.with_name("val_iou.csv"), 'ab') as f:
             np.savetxt(f, val_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
+        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         with open(model_path.with_name("metrics.csv"), 'ab') as f:
             np.savetxt(f, metrics[np.newaxis,:], delimiter=',', fmt='%.4f')
         
@@ -552,4 +568,4 @@ if train:
     print(" ==> last model saved")
 
 val_loss, val_ious = val(save_pred=True)
-print(f"Overall Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
+print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
