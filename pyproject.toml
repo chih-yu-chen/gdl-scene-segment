@@ -27,6 +27,7 @@ torch-geometric = "^2.4.0"
 torchsparse = {version = "^2.1.0+torch20cu118", source = "torchsparse"}
 torch-scatter = {version = "^2.1.2+pt20cu118", source = "torch-scatter"}
 dynaconf = "^3.2.4"
+wandb = "^0.16.4"
 
 
 [[tool.poetry.source]]

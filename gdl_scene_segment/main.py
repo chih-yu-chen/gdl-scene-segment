@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import wandb
 
 import sys
 pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
@@ -15,6 +16,7 @@ from config.config import settings
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+wandb.login()
 
 
 
@@ -84,6 +86,13 @@ random_rotate = settings.training.augment.rotate
 other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
+
+# w&b setup
+wandb.init(
+    project="baseline",
+    name=experiment,
+    config=settings.to_dict()
+)
 
 
 
@@ -319,9 +328,14 @@ if train:
 
         train_loss, train_ious = train_epoch()
         val_loss, val_ious = val()
-        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         scheduler.step()
 
+        wandb.log({
+            "train/loss": train_loss,
+            "train/mIoU": train_ious[0],
+            "val/loss": val_loss,
+            "val/mIoU": val_ious[0],
+        })
         print(f"Epoch {epoch}")
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
@@ -330,6 +344,7 @@ if train:
             np.savetxt(f, train_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
         with open(model_path.with_name("val_iou.csv"), 'ab') as f:
             np.savetxt(f, val_ious[np.newaxis,:], delimiter=',', fmt='%.4f')
+        metrics = np.asarray([train_loss, val_loss, train_ious[0], val_ious[0]])
         with open(model_path.with_name("metrics.csv"), 'ab') as f:
             np.savetxt(f, metrics[np.newaxis,:], delimiter=',', fmt='%.4f')
         
@@ -341,4 +356,4 @@ if train:
     print(" ==> last model saved")
 
 val_loss, val_ious = val(save_pred=True)
-print(f"Overall Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
+print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
