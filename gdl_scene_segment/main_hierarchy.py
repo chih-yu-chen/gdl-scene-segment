@@ -569,3 +569,4 @@ if train:
 
 val_loss, val_ious = val(save_pred=True)
 print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
+wandb.finish()
