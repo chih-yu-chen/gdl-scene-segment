@@ -73,7 +73,8 @@ loss_f = torch.nn.functional.cross_entropy
 train = not args.evaluate
 n_epoch = settings.training.n_epoch
 pseudo_batch_size = settings.training.pseudo_batch_size
-lr = settings.training.lr
+lr = settings.training.learning_rate
+wd = settings.training.weight_decay
 checkpt_every = settings.training.checkpt_every
 
 
@@ -133,7 +134,7 @@ if not train:
 
 
 # the optimizer & learning rate scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
 lr_step_size = settings.training.lr_step_size
 gamma = settings.training.lr_step_gamma
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)

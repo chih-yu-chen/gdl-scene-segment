@@ -16,7 +16,8 @@ c0 = 128
 [training]
 n_epoch = 200
 pseudo_batch_size = 8
-lr = 1e-3
+learning_rate = 1e-3
+weight_decay = 0
 lr_scheduler = 'step'
 lr_step_size = 1
 lr_step_gamma = 0.98
