@@ -99,10 +99,10 @@ class GeodesicBranch(nn.Module):
             nn.Linear(c_m, c3),
             nn.ReLU()
         )
-        # self.dec_halve_3 = nn.Sequential(
-        #     nn.Linear(c3*2, c3),
-        #     nn.ReLU()
-        # )
+        self.dec_halve_3 = nn.Sequential(
+            nn.Linear(c3*2, c3),
+            nn.ReLU()
+        )
         self.dec_diffusion_3 = []
         for i in range(n_diffnet_blocks):
             block = DiffNetLayers.DiffusionNetBlock(C_width=c3,
@@ -202,8 +202,8 @@ class GeodesicBranch(nn.Module):
         # Level 3
         y_3 = x_mid[:,traces34,:]
         y_3 = self.dec_narrow_3(y_3)
-        # y_3 = torch.cat([y_3, x_enc3], dim=-1)
-        # y_3 = self.dec_halve_3(y_3)
+        y_3 = torch.cat([y_3, x_enc3], dim=-1)
+        y_3 = self.dec_halve_3(y_3)
         y_dec3 = self.dec_diffusion_3[0](y_3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
         for block in self.dec_diffusion_3[1:]:
             y_dec3 = block(y_dec3, mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3)
