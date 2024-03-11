@@ -202,7 +202,6 @@ class GeodesicBranch(nn.Module):
                  dropout:bool,
                  c_in:int,
                  c_out:int,
-                 c0:int,
                  c1:int,
                  c2:int,
                  c3:int,
@@ -476,7 +475,7 @@ class DiffusionVoxelNet(nn.Module):
                  n_diffnet_blocks,
                  n_mlp_hidden, dropout,
                  c_in,
-                 c_out, c0, c1, c2, c3, c_m
+                 c_out, c1, c2, c3, c_m
         ) -> None:
 
         super().__init__()
@@ -486,7 +485,7 @@ class DiffusionVoxelNet(nn.Module):
         self.GeodesicBranch = GeodesicBranch(
             n_diffnet_blocks,
             n_mlp_hidden, dropout,
-            c_in, c_out, c0, c1, c2, c3, c_m
+            c_in, c_out, c1, c2, c3, c_m
         )
 
     def forward(self,
