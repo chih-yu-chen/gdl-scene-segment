@@ -81,8 +81,6 @@ if __name__ == '__main__':
         with open(split_dir/ "scannetv2_val.txt", 'r') as f:
             scenes.extend(f.read().splitlines())
 
-    remove_disconnection = True if args.hole_size > 0 else args.remove_disconnection
-
     # preprocess scenes
     for scene in tqdm(scenes):
 
@@ -91,19 +89,19 @@ if __name__ == '__main__':
         else:
             mesh_path = data_dir/ "scans"/ scene/ f"{scene}_vh_clean_2.ply"
         mesh = o3d.io.read_triangle_mesh(mesh_path.as_posix())
-        ref_idx = np.arange(np.asarray(mesh.vertices).shape[0])
 
         means = mesh.get_center()
         mesh = mesh.translate(-means)
 
-        if remove_disconnection:
-
+        if args.remove_disconnection:
             mesh = mesh.remove_non_manifold_edges()
             mesh = remove_disconnected_components(mesh)
 
-            if args.hole_size > 0:
-                mesh = fill_holes(mesh, args.hole_size)
+        if args.hole_size > 0:
+            mesh = mesh.remove_non_manifold_edges()
+            mesh = fill_holes(mesh, args.hole_size)
 
+        if args.remove_disconnection or args.hole_size > 0:
             ref_idx = get_referenced_idx(mesh)
             np.savetxt(dst_dir/ "idx"/ f"{scene}_referenced_idx.txt", ref_idx, fmt='%d', delimiter=',')
             mesh = mesh.remove_unreferenced_vertices()
