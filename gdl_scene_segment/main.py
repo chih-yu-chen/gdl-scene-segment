@@ -64,7 +64,7 @@ n_diffnet_blocks = settings.model.n_diffnet_blocks
 n_mlp_hidden = settings.model.n_mlp_hidden
 dropout = settings.model.dropout
 
-c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
+c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16, 'hksrgb': 19}[input_features]
 c_out = n_class
 c0 = settings.model.c0
 mlp_hidden_dims = [c0] * n_mlp_hidden
@@ -200,6 +200,9 @@ def train_epoch():
             x_in = torch.hstack((verts, rgb)).float()
         elif input_features == 'hks':
             x_in = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+        elif input_features == 'hksrgb':
+            hks = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+            x_in = torch.hstack((hks, rgb)).float()
 
         # move to device
         x_in = x_in.to(device)
@@ -268,6 +271,9 @@ def val(save_pred=False):
                 x_in = torch.hstack((verts, rgb)).float()
             elif input_features == 'hks':
                 x_in = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+            elif input_features == 'hksrgb':
+                hks = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+                x_in = torch.hstack((hks, rgb)).float()
 
             # move to device
             x_in = x_in.to(device)
