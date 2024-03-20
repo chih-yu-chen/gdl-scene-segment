@@ -63,6 +63,7 @@ op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
 n_diffnet_blocks = settings.model.n_diffnet_blocks
 n_mlp_hidden = settings.model.n_mlp_hidden
 dropout = settings.model.dropout
+gradient_rotation = settings.model.gradient_rotation
 
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16, 'hksrgb': 19}[input_features]
 c_out = n_class
@@ -122,7 +123,8 @@ model = diffusion_net.layers.DiffusionNet(C_in=c_in,
                                           N_block=n_diffnet_blocks,
                                           mlp_hidden_dims=mlp_hidden_dims,
                                           outputs_at='vertices',
-                                          dropout=dropout
+                                          dropout=dropout,
+                                          with_gradient_rotations=gradient_rotation,
 )
 
 model = model.to(device)

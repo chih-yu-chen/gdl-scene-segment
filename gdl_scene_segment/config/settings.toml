@@ -11,6 +11,7 @@ k_eig = 128
 n_diffnet_blocks = 4
 n_mlp_hidden = 2
 dropout = true
+gradient_rotation = true
 c0 = 128
 
 [model.hierarchy]
