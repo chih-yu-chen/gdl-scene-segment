@@ -5,7 +5,7 @@ class_names = "mIoU,wall,floor,cabinet,bed,chair,sofa,table,door,window,bookshel
 preprocess = "centered"
 
 [model]
-mesh_simplify_level = 1
+mesh_simplify_level = 0
 input_features = 'xyzrgb'
 k_eig = 128
 n_diffnet_blocks = 4
