@@ -16,6 +16,7 @@ class GeodesicBranch(nn.Module):
                  n_diffnet_blocks: int,
                  n_mlp_hidden: int,
                  dropout:bool,
+                 with_gradient_rotations:bool,
                  c_in:int,
                  c_out:int,
                 #  c1:int,
@@ -41,7 +42,7 @@ class GeodesicBranch(nn.Module):
         #                                             dropout=dropout,
         #                                             diffusion_method='spectral',
         #                                             with_gradient_features=True,
-        #                                             with_gradient_rotations=True)
+        #                                             with_gradient_rotations=with_gradient_rotations)
         #     self.enc_diffusion_1.append(block)
         #     self.add_module(f"Encoder_L1_DiffusionNetBlock_{i}", self.enc_diffusion_1[-1])
         # self.enc_widen_1 = nn.Sequential(
@@ -57,7 +58,7 @@ class GeodesicBranch(nn.Module):
         #                                             dropout=dropout,
         #                                             diffusion_method='spectral',
         #                                             with_gradient_features=True,
-        #                                             with_gradient_rotations=True)
+        #                                             with_gradient_rotations=with_gradient_rotations)
         #     self.enc_diffusion_2.append(block)
         #     self.add_module(f"Encoder_L2_DiffusionNetBlock_{i}", self.enc_diffusion_2[-1])
         # self.enc_widen_2 = nn.Sequential(
@@ -73,7 +74,7 @@ class GeodesicBranch(nn.Module):
                                                     dropout=dropout,
                                                     diffusion_method='spectral',
                                                     with_gradient_features=True,
-                                                    with_gradient_rotations=True)
+                                                    with_gradient_rotations=with_gradient_rotations)
             self.enc_diffusion_3.append(block)
             self.add_module(f"Encoder_L3_DiffusionNetBlock_{i}", self.enc_diffusion_3[-1])
         self.enc_widen_3 = nn.Sequential(
@@ -89,7 +90,7 @@ class GeodesicBranch(nn.Module):
                                                     dropout=dropout,
                                                     diffusion_method='spectral',
                                                     with_gradient_features=True,
-                                                    with_gradient_rotations=True)
+                                                    with_gradient_rotations=with_gradient_rotations)
             self.mid_diffusion.append(block)
             self.add_module(f"Middle_DiffusionNetBlock_{i}", self.mid_diffusion[-1])
 
@@ -110,7 +111,7 @@ class GeodesicBranch(nn.Module):
                                                     dropout=dropout,
                                                     diffusion_method='spectral',
                                                     with_gradient_features=True,
-                                                    with_gradient_rotations=True)
+                                                    with_gradient_rotations=with_gradient_rotations)
             self.dec_diffusion_3.append(block)
             self.add_module(f"Decoder_L3_DiffusionNetBlock_{i}", self.dec_diffusion_3[-1])
 
@@ -130,7 +131,7 @@ class GeodesicBranch(nn.Module):
         #                                             dropout=dropout,
         #                                             diffusion_method='spectral',
         #                                             with_gradient_features=True,
-        #                                             with_gradient_rotations=True)
+        #                                             with_gradient_rotations=with_gradient_rotations)
         #     self.dec_diffusion_2.append(block)
         #     self.add_module(f"Decoder_L2_DiffusionNetBlock_{i}", self.dec_diffusion_2[-1])
 
@@ -150,7 +151,7 @@ class GeodesicBranch(nn.Module):
         #                                             dropout=dropout,
         #                                             diffusion_method='spectral',
         #                                             with_gradient_features=True,
-        #                                             with_gradient_rotations=True)
+        #                                             with_gradient_rotations=with_gradient_rotations)
         #     self.dec_diffusion_1.append(block)
         #     self.add_module(f"Decoder_L1_DiffusionNetBlock_{i}", self.dec_diffusion_1[-1])
 
@@ -236,6 +237,7 @@ class DiffusionVoxelNet(nn.Module):
     def __init__(self,
                  n_diffnet_blocks,
                  n_mlp_hidden, dropout,
+                 with_gradient_rotations,
                  c_in,
                  c_out,
                 #  c1,
@@ -250,6 +252,7 @@ class DiffusionVoxelNet(nn.Module):
         self.GeodesicBranch = GeodesicBranch(
             n_diffnet_blocks,
             n_mlp_hidden, dropout,
+            with_gradient_rotations,
             c_in, c_out, c3, c_m
         )
 

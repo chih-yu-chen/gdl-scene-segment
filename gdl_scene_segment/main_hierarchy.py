@@ -64,6 +64,7 @@ op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
 n_diffnet_blocks = settings.model.n_diffnet_blocks
 n_mlp_hidden = settings.model.n_mlp_hidden
 dropout = settings.model.dropout
+gradient_rotation = settings.model.gradient_rotation
 
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
 c_out = n_class
@@ -127,6 +128,7 @@ if train:
 m = model.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
                                 n_mlp_hidden=n_mlp_hidden,
                                 dropout=dropout,
+                                with_gradient_rotations=gradient_rotation,
                                 c_in=c_in,
                                 c_out=c_out,
                                 c1=c1,
