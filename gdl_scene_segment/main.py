@@ -315,11 +315,69 @@ def val(save_pred=False):
                 preds[preds == -100] = -1
                 val_dataset.classes = np.append(val_dataset.classes, [0])
                 preds = val_dataset.classes[preds]
-                np.savetxt(pred_dir/ f"{scene}_labels.txt", preds, fmt='%d')
+                np.savetxt(pred_dir/ f"{scene}.txt", preds, fmt='%d')
             
     ious = tps / (tps+fps+fns)
 
     return total_loss/len(val_loader), np.insert(ious, 0, ious.mean())
+
+
+
+def test():
+
+    test_dataset = ScanNetDataset(train=False, test=True,
+                                  data_dir=data_dir,
+                                  preprocess=preprocess,
+                                  mesh_simplify_level=mesh_simplify_level,
+                                  k_eig=k_eig,
+                                  op_cache_dir=op_cache_dir)
+    test_loader = DataLoader(test_dataset, batch_size=None)
+
+    model.eval()
+
+    with torch.no_grad():
+    
+        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, _, ref_idx in tqdm(test_loader):
+
+            # get maximum norm
+            norm_max = np.linalg.norm(verts, axis=-1).max()
+
+            # normalize
+            verts = verts / norm_max
+
+            # construct features
+            if input_features == 'xyz':
+                x_in = verts.float()
+            elif input_features == 'xyzrgb':
+                x_in = torch.hstack((verts, rgb)).float()
+            elif input_features == 'hks':
+                x_in = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+            elif input_features == 'hksrgb':
+                hks = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+                x_in = torch.hstack((hks, rgb)).float()
+
+            # move to device
+            x_in = x_in.to(device)
+            mass = mass.to(device)
+            L = L.to(device)
+            evals = evals.to(device)
+            evecs = evecs.to(device)
+            gradX = gradX.to(device)
+            gradY = gradY.to(device)
+            
+            # apply the model
+            out = model(x_in, mass, L, evals, evecs, gradX, gradY)
+            
+            # save prediction
+            preds = torch.argmax(out.cpu(), dim=-1)
+            preds = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
+                    ).put_(ref_idx, preds)
+            preds[preds == -100] = -1
+            test_dataset.classes = np.append(test_dataset.classes, [0])
+            preds = test_dataset.classes[preds]
+            np.savetxt(pred_dir/ f"{scene}.txt", preds, fmt='%d')
+
+    return
 
 
 
@@ -370,4 +428,5 @@ if train:
 
 val_loss, val_ious = val(save_pred=True)
 print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
+test()
 wandb.finish()

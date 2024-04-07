@@ -18,6 +18,7 @@ class ScanNetDataset(Dataset):
 
     def __init__(self,
                  train:bool,
+                 test:bool,
                  data_dir:Path,
                  preprocess:str,
                  mesh_simplify_level:int,
@@ -25,6 +26,7 @@ class ScanNetDataset(Dataset):
                  op_cache_dir:Path):
 
         self.train = train
+        self.test = test
         self.data_dir = data_dir/ preprocess
         self.preprocess = preprocess
         self.simp_lv = mesh_simplify_level
@@ -39,6 +41,9 @@ class ScanNetDataset(Dataset):
         if self.train:
             with open(split_dir/ "scannetv2_train.txt", 'r') as f:
             # with open(split_dir/ "scannetv2_train_3e5.txt", 'r') as f:
+                self.scene_list = f.read().splitlines()
+        elif self.test:
+            with open(split_dir/ "scannetv2_test.txt", 'r') as f:
                 self.scene_list = f.read().splitlines()
         else:
             with open(split_dir/ "scannetv2_val.txt", 'r') as f:
@@ -73,10 +78,13 @@ class ScanNetDataset(Dataset):
             verts = verts * scale
 
             # load labels
-            label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
-            labels = np.loadtxt(label_path, dtype=np.int8)
-            labels = self.label_map[labels]
-            labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+            if not self.test:
+                label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
+                labels = np.loadtxt(label_path, dtype=np.int8)
+                labels = self.label_map[labels]
+                labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+            else:
+                labels = []
 
             # load rgb
             rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
@@ -114,10 +122,13 @@ class ScanNetDataset(Dataset):
             verts = verts * scale
 
             # load labels
-            label_path = self.data_dir/ "hierarchy"/ "labels"/ f"{scene}_labels1.txt"
-            labels = np.loadtxt(label_path, dtype=np.int8)
-            labels = self.label_map[labels]
-            labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+            if not self.test:
+                label_path = self.data_dir/ "hierarchy"/ "labels"/ f"{scene}_labels1.txt"
+                labels = np.loadtxt(label_path, dtype=np.int8)
+                labels = self.label_map[labels]
+                labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
+            else:
+                labels = []
 
             # load traces
             trace_path = self.data_dir/ "hierarchy"/ "traces"/ f"{scene}_traces01.txt"
