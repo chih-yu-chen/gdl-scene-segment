@@ -98,7 +98,7 @@ wandb.init(
 
 
 # datasets
-val_dataset = ScanNetDataset(train=False,
+val_dataset = ScanNetDataset(train=False, test=False,
                              data_dir=data_dir,
                              preprocess=preprocess,
                              mesh_simplify_level=mesh_simplify_level,
@@ -107,7 +107,7 @@ val_dataset = ScanNetDataset(train=False,
 val_loader = DataLoader(val_dataset, batch_size=None)
 
 if train:
-    train_dataset = ScanNetDataset(train=True,
+    train_dataset = ScanNetDataset(train=True, test=False,
                                    data_dir=data_dir,
                                    preprocess=preprocess,
                                    mesh_simplify_level=mesh_simplify_level,
