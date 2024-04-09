@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 from plyfile import PlyData
-from . import util
+import util
 
 
 # matrix: 4x4 np array

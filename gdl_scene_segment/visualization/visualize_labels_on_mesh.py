@@ -9,8 +9,8 @@
 # python imports
 import argparse
 from plyfile import PlyData
-from . import util
-from . import util_3d
+import util
+import util_3d
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--pred_file', required=True, help='path to predicted labels file as .txt evaluation format')
