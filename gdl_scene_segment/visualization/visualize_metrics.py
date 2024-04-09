@@ -1,94 +1,191 @@
 import numpy as np
-import matplotlib.colors as mcolors
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from pathlib import Path
 
 
 
-tableau_colors = list(mcolors.TABLEAU_COLORS.keys())
-exp_dir = Path("experiments")
+def read_metrics(exp_dir:Path) -> np.ndarray:
 
-# # Read from losses and ious and save metrics
-# exp_name = "hierarchy/08_hierarchy_resLinear"
-# loss = np.loadtxt(exp_dir/ exp_name/ "loss.csv", delimiter=',')
-# train = np.loadtxt(exp_dir/ exp_name/ "train_iou.csv", delimiter=',', skiprows=1)
-# val = np.loadtxt(exp_dir/ exp_name/ "val_iou.csv", delimiter=',', skiprows=1)
-# metrics = np.hstack((loss, train[:,0:1], val[:,0:1]))
-# header = "Train Loss,Val Loss,Train mIoU,Val mIoU"
-# np.savetxt(exp_dir/ exp_name/ "metrics.csv", metrics, delimiter=',', fmt='%.4f', header=header, comments="")
+    return np.loadtxt(exp_dir/ "metrics.csv", delimiter=',', skiprows=1)
 
-centered = np.loadtxt(exp_dir/ "baseline"/ "01_baseline_centered"/ "metrics.csv", delimiter=',', skiprows=1)
-single = np.loadtxt(exp_dir/ "baseline"/ "03_baseline_singleComponents"/ "metrics.csv", delimiter=',', skiprows=1)
-filled = np.loadtxt(exp_dir/ "baseline"/ "00_baseline_holesFilled"/ "metrics.csv", delimiter=',', skiprows=1)
-multi = np.loadtxt(exp_dir/ "baseline"/ "07_baseline_filledMulti"/ "metrics.csv", delimiter=',', skiprows=1)
-centered_rot = np.loadtxt(exp_dir/ "baseline"/ "02_baseline_centered_rotAug"/ "metrics.csv", delimiter=',', skiprows=1)
-vc002 = np.loadtxt(exp_dir/ "hierarchy"/ "12_hierarchy_1Level"/ "metrics.csv", delimiter=',', skiprows=1)
-block8 = np.loadtxt(exp_dir/ "baseline"/ "05_baseline_8DiffBlocks"/ "metrics.csv", delimiter=',', skiprows=1)
-hks = np.loadtxt(exp_dir/ "baseline"/ "06_baseline_hks"/ "metrics.csv", delimiter=',', skiprows=1)
+def draw_metrics(metrics:np.ndarray,
+                 exp_name:list[str],
+                 n_epochs:int=0,
+                 ymax:float=0.,
+                 out_path:Path=None,
+                 ) -> None:
 
-hierarchy_filled = np.loadtxt(exp_dir/ "hierarchy"/ "00_hierarchy_holesFilled"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_euc = np.loadtxt(exp_dir/ "hierarchy"/ "02_hierarchy_noGeo"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_geo = np.loadtxt(exp_dir/ "hierarchy"/ "03_hierarchy_noEuc"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_noAug = np.loadtxt(exp_dir/ "hierarchy"/ "01_hierarchy_noAug"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_1B = np.loadtxt(exp_dir/ "hierarchy"/ "04_hierarchy_1DiffBlock"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_4B = np.loadtxt(exp_dir/ "hierarchy"/ "06_hierarchy_4DiffBlocks"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_c32128 = np.loadtxt(exp_dir/ "hierarchy"/ "05_hierarchy_cWidth_32-128"/ "metrics.csv", delimiter=',', skiprows=1)
+    len_x = [n_epochs if (n_epochs > 0) and (m.shape[0] > n_epochs) else m.shape[0] for m in metrics]
+    xs = [np.arange(x) for x in len_x]
 
-hierarchy_centered = np.loadtxt(exp_dir/ "hierarchy"/ "07_hierarchy_centered"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_resLinear = np.loadtxt(exp_dir/ "hierarchy"/ "08_hierarchy_resLinear"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_noRes = np.loadtxt(exp_dir/ "hierarchy"/ "09_hierarchy_noRes"/ "metrics.csv", delimiter=',', skiprows=1)
+    _, (ax0, ax1) = plt.subplots(2, 1, sharex=True, layout="constrained")
 
-hierarchy_2Levels = np.loadtxt(exp_dir/ "hierarchy"/ "10_hierarchy_2Levels"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_2Levels_noAug = np.loadtxt(exp_dir/ "hierarchy"/ "11_hierarchy_2Levels_noAug"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_2Levels_noSkip = np.loadtxt(exp_dir/ "hierarchy"/ "13_hierarchy_2Levels_noSkip"/ "metrics.csv", delimiter=',', skiprows=1)
-hierarchy_2Levels_rotAug = np.loadtxt(exp_dir/ "hierarchy"/ "14_hierarchy_2Levels_rotAug"/ "metrics.csv", delimiter=',', skiprows=1)
+    for i, m in enumerate(metrics):
+        ax0.plot(xs[i], m[:len_x[i],0], label = f"{exp_name[i]} Train", color=tableau_colors(2*i+1))
+        ax0.plot(xs[i], m[:len_x[i],1], label = f"{exp_name[i]} Val", color=tableau_colors(2*i))
+        ax1.plot(xs[i], m[:len_x[i],2], label = f"{exp_name[i]} Train", color=tableau_colors(2*i+1))
+        ax1.plot(xs[i], m[:len_x[i],3], label = f"{exp_name[i]} Val", color=tableau_colors(2*i))
 
+    # ax0.set_xlabel("Epochs")
+    ax0.set_ylabel("Loss")
+    # ax0.legend()
+    ax0.grid(axis='both')
+    if ymax > 0:
+        ax0.set_ylim(0., ymax)
+
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Mean Intersection over Union")
+    ax1.legend(fontsize=5)
+    ax1.grid(axis='both')
+
+    plt.savefig(out_path)
+    plt.close()
+
+    return
+
+
+
+# Plot settings
+tableau_colors = mpl.colormaps['tab20']
+mpl.rcParams["font.size"] = 10
+mpl.rcParams['lines.linewidth'] = 0.8
+
+# Paths
+exps_dir = Path("experiments")
+base_dir = exps_dir/ "baseline"
+hier_dir = exps_dir/ "hierarchy"
+out_dir = Path("visualizations", "metrics")
+out_dir.mkdir(parents=True, exist_ok=True)
+
+
+
+# Experiments on Vanilla DiffusionNet
+# --------------------------------------------
+xyzrgb = read_metrics(base_dir/ "00_baseline_xyzrgb")
+noGradRot = read_metrics(base_dir/ "03_baseline_noGradientRotation")
+
+# Inputs
+xyz = read_metrics(base_dir/ "00_baseline_xyz")
+hks = read_metrics(base_dir/ "00_baseline_hks")
+hksrgb = read_metrics(base_dir/ "00_baseline_hksrgb")
+exp_name = ["XYZ", "XYZRGB", "HKS", "HKSRGB"]
+metrics = [xyz, xyzrgb, hks, hksrgb]
+out_path = out_dir/ "base_exp1_model_inputs.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
 # Preprocess
-exp_name = ["Centered", "Single Components", "Holes Filled", "Single Components + Holes Filled"]
-metrics = [centered, single, multi, filled]
+single = read_metrics(base_dir/ "01_baseline_singleComponents")
+filled = read_metrics(base_dir/ "01_baseline_holesFilled")
+multi = read_metrics(base_dir/ "01_baseline_filledMulti")
+exp_name = ["Raw", "Disconnection Removed", "Holes Filled", "Both"]
+metrics = [xyzrgb, single, filled, multi]
+out_path = out_dir/ "base_exp2_mesh_preprocessing.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
-exp_name = ["Centered", "Single Components", "Holes Filled", "Hierarchy Centered", "Hierarchy Holes Filled"]
-metrics = [centered, single, filled, hierarchy_centered, hierarchy_c32128]
+# Exp 3-5
+vc002 = read_metrics(hier_dir/ "12_hierarchy_1Level")
+rotAug = read_metrics(base_dir/ "04_baseline_rotAug")
+exp_name = ["Raw/ Gradient Rotation/ All Aug.", "Vertex-Clustered", "No Gradient Rotation", "Rotational Augmentation"]
+metrics = [xyzrgb, vc002, noGradRot, rotAug]
+out_path = out_dir/ "base_exp3-5.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
-# Hierarchy Branches
-exp_name = ["DiffusionNet", "Both Branches", "Euclidean", "Geodesic"]
-metrics = [centered, hierarchy_filled, hierarchy_euc, hierarchy_geo]
+# Initial Learning Rates
+lr01 = read_metrics(base_dir/ "05_baseline_lr01")
+lr001 = read_metrics(base_dir/ "05_baseline_lr001")
+exp_name = ["LR 0.001", "LR 0.01", "LR 0.1"]
+metrics = [noGradRot, lr001, lr01]
+out_path = out_dir/ "base_exp6_1_ilr.svg"
+draw_metrics(metrics, exp_name, 50, 2, out_path)
 
-# Augmentation
-exp_name = ["DiffusionNet All Augs", "DiffusionNet Rotational Augs", "Hierarchy All Augs", "Hierarchy no Aug"]
-metrics = [centered, centered_rot, hierarchy_filled, hierarchy_noAug]
+# Learning Rate Schedules
+lrs_diffnet = read_metrics(base_dir/ "06_baseline_lrs_DiffusionNet_50")
+lrs_vmnet = read_metrics(base_dir/ "06_baseline_lrs_VMNet_100")
+exp_name = ["PicassoNet++", "DiffusionNet", "VMNet"]
+metrics = [noGradRot, lrs_diffnet, lrs_vmnet]
+out_path = out_dir/ "base_exp6_2_lrs.svg"
+draw_metrics(metrics, exp_name, 75, 0, out_path)
 
-# Hierarchy Number of DiffusionNet Blocks
-exp_name = ["Hierarchy 2 DiffBlocks", "Hierarchy 1 DiffBlock", "Hierarchy 4 DiffBlocks"]
-metrics = [hierarchy_filled, hierarchy_1B, hierarchy_4B]
+# MLP widths
+cw64 = read_metrics(base_dir/ "07_baseline_cWidth64")
+cw256 = read_metrics(base_dir/ "07_baseline_cWidth256")
+block8 = read_metrics(base_dir/ "08_baseline_8Blocks_cWidth64")
+block16 = read_metrics(base_dir/ "08_baseline_16Blocks_cWidth64")
+exp_name = ["4 Blocks, Width 64", "4 Blocks, Width 128", "4 Blocks, Width 256", "8 Blocks, Width 64", "16 Blocks, Width 64"]
+metrics = [cw64, noGradRot, cw256, block8, block16]
+out_path = out_dir/ "base_exp6_3-4_cWidth_blocks.svg"
+draw_metrics(metrics, exp_name, 75, 0, out_path)
 
-# Hierarchy Channel Width
-exp_name = ["Hierarchy 64-160", "Hierarchy 32-128"]
-metrics = [hierarchy_filled, hierarchy_c32128]
 
-# Hierarchy Residual Connection
-exp_name = ["Hierarchy Residual", "Hierarchy Residual+Linear", "Hierarchy no Additional Residual"]
+
+# Experiments on Proposed Architecture
+# --------------------------------------------
+hierarchy_centered = read_metrics(hier_dir/ "07_hierarchy_centered")
+hierarchy_filled = read_metrics(hier_dir/ "00_hierarchy_holesFilled")
+hierarchy_geo = read_metrics(hier_dir/ "03_hierarchy_noEuc")
+hierarchy_2Levels_noGradRot = read_metrics(hier_dir/ "16_hierarchy_2Levels_noGradRot")
+
+# First
+exp_name = ["Vanilla DiffusionNet", "Proposed Architecture"]
+metrics = [noGradRot, hierarchy_filled]
+out_path = out_dir/ "pyramid_exp1_whole_architecture.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
+
+# Individual Branches
+hierarchy_euc = read_metrics(hier_dir/ "02_hierarchy_noGeo")
+exp_name = ["Both Branches", "Euclidean Branch", "Geodesic Branch"]
+metrics = [hierarchy_filled, hierarchy_euc, hierarchy_geo]
+out_path = out_dir/ "pyramid_exp2_branches.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
+
+# Structural Tweaks
+hierarchy_resLinear = read_metrics(hier_dir/ "08_hierarchy_resLinear")
+hierarchy_noRes = read_metrics(hier_dir/ "09_hierarchy_noRes")
+exp_name = ["Proposed Architecture", "Linear before Residual", "No Residual"]
+metrics = [hierarchy_filled, hierarchy_resLinear, hierarchy_noRes]
+out_path = out_dir/ "pyramid_exp3_geo_structure.svg"
+draw_metrics(metrics, exp_name, 50, 6.5, out_path)
+
+# Structural Tweaks (2)
+hierarchy_resLinear = read_metrics(hier_dir/ "08_hierarchy_resLinear")
+hierarchy_noRes = read_metrics(hier_dir/ "09_hierarchy_noRes")
+exp_name = ["Proposed Architecture", "Linear before Residual", "No Residual"]
 metrics = [hierarchy_centered, hierarchy_resLinear, hierarchy_noRes]
+out_path = out_dir/ "pyramid_exp3_geo_structure_2.svg"
+draw_metrics(metrics, exp_name, 50, 6.5, out_path)
 
-# Hierarchy 2 Levels Tests
-exp_name = ["Hierarchy 2 Levels", "Hierarchy 2 Levels no Augmentation", "Hierarchy 2 Levels no Skip Connection", "Hierarchy 2 Levels Rotational Augmentation"]
-metrics = [hierarchy_2Levels, hierarchy_2Levels_noAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_rotAug]
+# Number of Levels
+exp_name = ["Vanilla DiffusionNet", "4 Levels", "2 Levels", "1 Level"]
+metrics = [noGradRot, hierarchy_geo, hierarchy_2Levels_noGradRot, vc002]
+out_path = out_dir/ "pyramid_exp4_levels.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
-# Recent
-exp_name = ["Centered Raw", "Centered VC002", "8 DiffusionNet Blocks", "HKS input"]
-metrics = [centered, vc002, block8, hks]
+# Tweaks at 2 Levels
+hierarchy_2Levels_noAug = read_metrics(hier_dir/ "11_hierarchy_2Levels_noAug")
+hierarchy_2Levels_noSkip = read_metrics(hier_dir/ "13_hierarchy_2Levels_noSkip")
+hierarchy_2Levels_rotAug = read_metrics(hier_dir/ "14_hierarchy_2Levels_rotAug")
+hierarchy_2Levels_noGradRot_1e4 = read_metrics(hier_dir/ "15_hierarchy_2Levels_1e-4_noGradRot")
+exp_name = ["Default", "No Augmentation", "Rotational Augmentation", "No Skip Connection", "Initial LR 0.0001"]
+metrics = [hierarchy_2Levels_noGradRot, hierarchy_2Levels_noAug, hierarchy_2Levels_rotAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_noGradRot_1e4]
+out_path = out_dir/ "pyramid_exp5_tweaks_level2.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
+# Number of Blocks
+hierarchy_1B = read_metrics(hier_dir/ "04_hierarchy_1DiffBlock")
+hierarchy_4B = read_metrics(hier_dir/ "06_hierarchy_4DiffBlocks")
+exp_name = ["2 DiffusionNet Blocks", "2 (actually 1)", "1 DiffusionNet Block", "4 DiffusionNet Blocks"]
+metrics = [hierarchy_centered, hierarchy_filled, hierarchy_1B, hierarchy_4B]
+out_path = out_dir/ "pyramid_exp9_blocks.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
+# Mesh Preprocess
+exp_name = ["Raw", "Holes Filled"]
+metrics = [hierarchy_centered, hierarchy_filled]
+out_path = out_dir/ "pyramid_exp9_preprocess.svg"
+draw_metrics(metrics, exp_name, 50, 0, out_path)
 
-for i, m in enumerate(metrics):
-    plt.plot(np.arange(m.shape[0]), m[:,0], label = f"{exp_name[i]} Train", color=tableau_colors[i])
-    plt.plot(np.arange(m.shape[0]), m[:,1], label = f"{exp_name[i]} Val", color=tableau_colors[i])
-plt.legend()
-plt.show()
-
-for i, m in enumerate(metrics):
-    plt.plot(np.arange(m.shape[0]), m[:,2], label = f"{exp_name[i]} Train", color=tableau_colors[i])
-    plt.plot(np.arange(m.shape[0]), m[:,3], label = f"{exp_name[i]} Val", color=tableau_colors[i])
-plt.legend()
-plt.show()
+# Others
+hierarchy_noAug = read_metrics(hier_dir/ "01_hierarchy_noAug")
+hierarchy_c32128 = read_metrics(hier_dir/ "05_hierarchy_cWidth_32-128")
+hierarchy_2Levels = read_metrics(hier_dir/ "10_hierarchy_2Levels")
