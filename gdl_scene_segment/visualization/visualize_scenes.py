@@ -1,5 +1,5 @@
 import json
-import open3d as o3d
+import open3d as o3d # requires open3d 0.18.0
 from open3d.visualization import draw_geometries, Visualizer
 from pathlib import Path
 
