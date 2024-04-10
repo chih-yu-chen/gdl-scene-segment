@@ -70,7 +70,7 @@ class ScanNetHierarchyDataset(Dataset):
             faces.append(torch.tensor(np.ascontiguousarray(f.astype(np.int32))))
 
         # unit scale
-        with open(self.hierarchy_dir/ "norm_max"/ f"{scene}_norm_max.txt", 'r') as f:
+        with open(self.data_dir/ "norm_max"/ f"{scene}_norm_max.txt", 'r') as f:
             norm_max = float(f.read())
         verts = [v / norm_max for v in verts]
 
