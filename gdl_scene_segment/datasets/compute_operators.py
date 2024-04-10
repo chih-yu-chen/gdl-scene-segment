@@ -12,6 +12,30 @@ import diffusion_net
 
 
 
+def compute_gradients(verts, faces, L, normals=None):
+
+    device = verts.device
+    dtype = verts.dtype
+
+    # build gradient matrices
+    frames = diffusion_net.geometry.build_tangent_frames(verts, faces, normals=normals)
+    inds_row, inds_col = L.indices()
+    edges = torch.tensor(np.stack((inds_row, inds_col), axis=0), device=device, dtype=faces.dtype)
+    edge_vecs = diffusion_net.geometry.edge_tangent_vectors(verts, frames, edges)
+    grad_mat_np = diffusion_net.geometry.build_grad(verts, edges, edge_vecs)
+
+    # Split complex gradient in to two real sparse mats (torch doesn't like complex sparse matrices)
+    gradX_np = np.real(grad_mat_np)
+    gradY_np = np.imag(grad_mat_np)
+
+    # convert back to torch
+    gradX = diffusion_net.utils.sparse_np_to_torch(gradX_np).to(device=device, dtype=dtype)
+    gradY = diffusion_net.utils.sparse_np_to_torch(gradY_np).to(device=device, dtype=dtype)
+
+    return gradX, gradY
+
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()

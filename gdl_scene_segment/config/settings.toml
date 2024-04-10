@@ -5,13 +5,12 @@ class_names = "mIoU,wall,floor,cabinet,bed,chair,sofa,table,door,window,bookshel
 preprocess = "centered"
 
 [model]
-mesh_simplify_level = 0
 input_features = 'xyzrgb'
 k_eig = 128
 n_diffnet_blocks = 4
 n_mlp_hidden = 2
 dropout = true
-gradient_rotation = true
+gradient_rotation = false
 c0 = 128
 
 [model.hierarchy]
@@ -34,7 +33,11 @@ checkpt_every = 10
 
 [training.augment]
 rotate = true
-other = true
+translate = true
+flip = true
+scale = false
+rgb_jitter = true
+operators = true
 translate_scale = 0.2
 scaling_range = 0.5
 

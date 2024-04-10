@@ -11,6 +11,7 @@ pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
 sys.path.append(pkg_path.as_posix())
 import diffusion_net
 from datasets.scannet_dataset import ScanNetDataset
+from datasets.compute_operators import compute_gradients
 from model import utils
 from config.config import settings
 
@@ -56,7 +57,6 @@ class_names = settings.data.class_names
 
 
 # model settings
-mesh_simplify_level = settings.model.mesh_simplify_level
 input_features = settings.model.input_features
 k_eig = settings.model.k_eig
 op_cache_dir = data_dir/ "diffusion-net"/ f"op_cache_{k_eig}"
@@ -84,9 +84,15 @@ checkpt_every = settings.training.checkpt_every
 
 # augmentation settings
 random_rotate = settings.training.augment.rotate
-other_augment = settings.training.augment.other
+random_offset = settings.training.augment.translate
+random_flip = settings.training.augment.flip
+random_scale = settings.training.augment.scale
+chromatic_jitter = settings.training.augment.rgb_jitter
+augment_operators = settings.training.augment.operators
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
+
+
 
 # w&b setup
 wandb.init(
@@ -98,23 +104,20 @@ wandb.init(
 
 
 # datasets
-val_dataset = ScanNetDataset(train=False, test=False,
-                             data_dir=data_dir,
-                             preprocess=preprocess,
-                             mesh_simplify_level=mesh_simplify_level,
-                             k_eig=k_eig,
-                             op_cache_dir=op_cache_dir)
-val_loader = DataLoader(val_dataset, batch_size=None)
-
 if train:
     train_dataset = ScanNetDataset(train=True, test=False,
                                    data_dir=data_dir,
                                    preprocess=preprocess,
-                                   mesh_simplify_level=mesh_simplify_level,
                                    k_eig=k_eig,
                                    op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
+val_dataset = ScanNetDataset(train=False, test=False,
+                             data_dir=data_dir,
+                             preprocess=preprocess,
+                             k_eig=k_eig,
+                             op_cache_dir=op_cache_dir)
+val_loader = DataLoader(val_dataset, batch_size=None)
 
 # the model
 model = diffusion_net.layers.DiffusionNet(C_in=c_in,
@@ -172,29 +175,33 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (_, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx) in enumerate(tqdm(train_loader)):
-
-        # get maximum norm
-        norm_max = np.linalg.norm(verts, axis=-1).max()
+    for i, (_, verts, faces, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max) in enumerate(tqdm(train_loader)):
 
         # augmentation
         if random_rotate:
             rot_mat = utils.random_rotate_points_z()
             verts = torch.matmul(verts, rot_mat)
 
-        if other_augment:
+        if random_offset:
             offset = utils.random_translate(scale=translate_scale)
             verts += offset
+        
+        if random_flip:
             sign = utils.random_flip()
             verts[:,0] *= sign
+
+        if random_scale:
             scale = utils.random_scale(scaling_range=scaling_range)
             verts *= scale
+        
+        if augment_operators:
+            gradX, gradY = compute_gradients(verts/norm_max, faces, L)
 
         # normalize
         verts = verts / norm_max
 
         # rgb features
-        if other_augment:
+        if chromatic_jitter:
             rgb_shape = rgb.shape
             jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
             rgb += jitter
@@ -263,10 +270,7 @@ def val(save_pred=False):
 
     with torch.no_grad():
     
-        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx in tqdm(val_loader):
-
-            # get maximum norm
-            norm_max = np.linalg.norm(verts, axis=-1).max()
+        for scene, verts, _, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max in tqdm(val_loader):
 
             # normalize
             verts = verts / norm_max
@@ -328,7 +332,6 @@ def test():
     test_dataset = ScanNetDataset(train=False, test=True,
                                   data_dir=data_dir,
                                   preprocess=preprocess,
-                                  mesh_simplify_level=mesh_simplify_level,
                                   k_eig=k_eig,
                                   op_cache_dir=op_cache_dir)
     test_loader = DataLoader(test_dataset, batch_size=None)
@@ -337,10 +340,7 @@ def test():
 
     with torch.no_grad():
     
-        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, _, ref_idx in tqdm(test_loader):
-
-            # get maximum norm
-            norm_max = np.linalg.norm(verts, axis=-1).max()
+        for scene, verts, _, rgb, mass, L, evals, evecs, gradX, gradY, _, ref_idx, norm_max in tqdm(test_loader):
 
             # normalize
             verts = verts / norm_max
