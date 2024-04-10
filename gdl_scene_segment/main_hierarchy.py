@@ -95,6 +95,8 @@ other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
 
+
+
 # w&b setup
 wandb.init(
     project="gdl_scene_segment",
@@ -177,18 +179,12 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (_, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces) in enumerate(tqdm(train_loader)):
+    for i, (_, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max) in enumerate(tqdm(train_loader)):
 
         # unpack lists
         verts_0, verts_1 = verts
         rgb_0, rgb_1 = rgbs
 
-        # mass_0, mass_1, mass_2, mass_3, mass_m = mass
-        # L_0, L_1, L_2, L_3, L_m = L
-        # evals_0, evals_1, evals_2, evals_3, evals_m = evals
-        # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
-        # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
-        # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
         mass_1, mass_2, mass_3, mass_m = mass
         L_1, L_2, L_3, L_m = L
         evals_1, evals_2, evals_3, evals_m = evals
@@ -199,9 +195,6 @@ def train_epoch():
         labels_0, labels_1 = labels
 
         traces01, traces12, traces23, traces34 = traces
-
-        # get maximum norm
-        norm_max = np.linalg.norm(verts_0, axis=-1).max()
 
         # augmentation
         if random_rotate:
@@ -312,23 +305,9 @@ def train_epoch():
             mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
             traces01, traces12, traces23, traces34
         )
-        # euc_out = m(
-        #     x_in, voxels, rgb_vox,
-        # )
-        # geo_out = m(
-        #     x_in, voxels, rgb_vox,
-        #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-        #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-        #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-        #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-        #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-        #     traces01, traces12, traces23, traces34
-        # )
 
         # evaluate loss
         loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
-        # loss = loss_f(euc_out, labels_vox)
-        # loss = loss_f(geo_out, labels_1)
         total_loss += loss.item()
         loss.backward()
         
@@ -340,8 +319,6 @@ def train_epoch():
         gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                      ).put_(ref_idx, labels_0.cpu())
         this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
-        # euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
-        # this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
         tps += this_tps
         fps += this_fps
         fns += this_fns
@@ -369,18 +346,12 @@ def val(save_pred=False):
 
     with torch.no_grad():
     
-        for scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces in tqdm(val_loader):
+        for scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max in tqdm(val_loader):
 
             # unpack lists
             verts_0, verts_1 = verts
             rgb_0, rgb_1 = rgbs
 
-            # mass_0, mass_1, mass_2, mass_3, mass_m = mass
-            # L_0, L_1, L_2, L_3, L_m = L
-            # evals_0, evals_1, evals_2, evals_3, evals_m = evals
-            # evecs_0, evecs_1, evecs_2, evecs_3, evecs_m = evecs
-            # gradX_0, gradX_1, gradX_2, gradX_3, gradX_m = gradX
-            # gradY_0, gradY_1, gradY_2, gradY_3, gradY_m = gradY
             mass_1, mass_2, mass_3, mass_m = mass
             L_1, L_2, L_3, L_m = L
             evals_1, evals_2, evals_3, evals_m = evals
@@ -391,9 +362,6 @@ def val(save_pred=False):
             labels_0, labels_1 = labels
 
             traces01, traces12, traces23, traces34 = traces
-
-            # get maximum norm
-            norm_max = np.linalg.norm(verts_0, axis=-1).max()
 
             # sparse-voxelize vertices
             voxels = verts_0.detach().numpy()
@@ -477,23 +445,9 @@ def val(save_pred=False):
                 mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
                 traces01, traces12, traces23, traces34
             )
-            # euc_out = m(
-            #     x_in, voxels, rgb_vox,
-            # )
-            # geo_out = m(
-            #     x_in, voxels, rgb_vox,
-            #     # mass_0, L_0, evals_0, evecs_0, gradX_0, gradY_0,
-            #     mass_1, L_1, evals_1, evecs_1, gradX_1, gradY_1,
-            #     mass_2, L_2, evals_2, evecs_2, gradX_2, gradY_2,
-            #     mass_3, L_3, evals_3, evecs_3, gradX_3, gradY_3,
-            #     mass_m, L_m, evals_m, evecs_m, gradX_m, gradY_m,
-            #     traces01, traces12, traces23, traces34
-            # )
 
             # track loss
             loss = loss_f(euc_out, labels_vox) + loss_f(geo_out, labels_1)
-            # loss = loss_f(euc_out, labels_vox)
-            # loss = loss_f(geo_out, labels_1)
             total_loss += loss.item()
 
             # track accuracy
@@ -504,8 +458,6 @@ def val(save_pred=False):
             gt_labels = (-100 * torch.ones(ref_idx.max()+1, dtype=torch.int64)
                          ).put_(ref_idx, labels_0.cpu())
             this_tps, this_fps, this_fns = utils.get_ious(geo_preds, gt_labels, n_class)
-            # euc_preds = torch.argmax(euc_out.cpu(), dim=-1)
-            # this_tps, this_fps, this_fns = utils.get_ious(euc_preds, labels_vox.cpu(), n_class)
             tps += this_tps
             fps += this_fps
             fns += this_fns

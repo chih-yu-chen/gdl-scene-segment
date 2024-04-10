@@ -55,7 +55,7 @@ class ScanNetHierarchyDataset(Dataset):
 
         scene = self.scene_list[idx]
 
-        # load mesh * 5
+        # load mesh * n_levels+1
         mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
         mesh_paths = [self.hierarchy_dir/ "scenes"/ mesh_path.with_stem(f"{mesh_path.stem}_{i+1}").name
                       for i in range(self.n_levels)]
@@ -70,10 +70,11 @@ class ScanNetHierarchyDataset(Dataset):
             faces.append(torch.tensor(np.ascontiguousarray(f.astype(np.int32))))
 
         # unit scale
-        scale = np.linalg.norm(verts[0], axis=-1).max()
-        verts = [v / scale for v in verts]
+        with open(self.hierarchy_dir/ "norm_max"/ f"{scene}_norm_max.txt", 'r') as f:
+            norm_max = float(f.read())
+        verts = [v / norm_max for v in verts]
 
-        # load operators * 5
+        # load operators * n_levels
         mass = []
         L = []
         evals = []
@@ -90,7 +91,7 @@ class ScanNetHierarchyDataset(Dataset):
             gradY.append(ops[6])
 
         # scale back
-        verts = [verts[0]*scale, verts[1]*scale]
+        verts = [verts[0]*norm_max, verts[1]*norm_max]
 
         # load labels * 2
         labels = []
@@ -101,7 +102,7 @@ class ScanNetHierarchyDataset(Dataset):
             l = self.label_map[l]
             labels.append(torch.tensor(np.ascontiguousarray(l.astype(np.int64))))
 
-        # load traces * 4
+        # load traces * n_levels
         trace_paths = [self.hierarchy_dir/ "traces"/ f"{scene}_traces{i}{i+1}.txt"
                        for i in range(self.n_levels)]
         traces = [np.loadtxt(path, dtype=np.int64) for path in trace_paths]
@@ -124,4 +125,4 @@ class ScanNetHierarchyDataset(Dataset):
             ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces
+        return scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max

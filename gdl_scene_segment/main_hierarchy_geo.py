@@ -6,6 +6,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import wandb
 
+import sys
+pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
+sys.path.append(pkg_path.as_posix())
+import diffusion_net
+
 from datasets.scannet_hierarchy_dataset_test_geo import ScanNetHierarchyDataset
 from model import model_test_geo, utils
 from config.config import settings
@@ -87,6 +92,8 @@ random_rotate = settings.training.augment.rotate
 other_augment = settings.training.augment.other
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
+
+
 
 # w&b setup
 wandb.init(
@@ -210,8 +217,8 @@ def train_epoch():
             x_in = verts.float()
         elif input_features == 'xyzrgb':
             x_in = torch.hstack((verts, rgb)).float()
-        # elif input_features == 'hks':
-        #     x_in = diffusion_net.geometry.compute_hks_autoscale(evals_1, evecs_1, 16)
+        elif input_features == 'hks':
+            x_in = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
 
         # move to device
         x_in = x_in.to(device)
@@ -335,8 +342,8 @@ def val(save_pred=False):
                 x_in = verts.float()
             elif input_features == 'xyzrgb':
                 x_in = torch.hstack((verts, rgb)).float()
-            # elif input_features == 'hks':
-            #     x_in = diffusion_net.geometry.compute_hks_autoscale(evals_1, evecs_1, 16)
+            elif input_features == 'hks':
+                x_in = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
 
             # move to device
             x_in = x_in.to(device)
