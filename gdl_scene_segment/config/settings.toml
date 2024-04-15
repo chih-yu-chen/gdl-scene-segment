@@ -35,9 +35,9 @@ checkpt_every = 10
 rotate = true
 translate = true
 flip = true
-scale = false
+scale = true
 rgb_jitter = true
-operators = true
+operators = false
 translate_scale = 0.2
 scaling_range = 0.5
 
