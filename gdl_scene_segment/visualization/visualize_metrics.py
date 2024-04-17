@@ -84,7 +84,7 @@ out_path = out_dir/ "base_exp2_mesh_preprocessing.svg"
 draw_metrics(metrics, exp_name, 50, 0, out_path)
 
 # Exp 3-5
-vc002 = read_metrics(hier_dir/ "12_hierarchy_1Level")
+vc002 = read_metrics(base_dir/ "02_baseline_vc002")
 rotAug = read_metrics(base_dir/ "04_baseline_rotAug")
 exp_name = ["Raw/ Gradient Rotation/ All Aug.", "Vertex-Clustered", "No Gradient Rotation", "Rotational Augmentation"]
 metrics = [xyzrgb, vc002, noGradRot, rotAug]
@@ -121,71 +121,44 @@ draw_metrics(metrics, exp_name, 75, 0, out_path)
 
 # Experiments on Proposed Architecture
 # --------------------------------------------
-hierarchy_centered = read_metrics(hier_dir/ "07_hierarchy_centered")
-hierarchy_filled = read_metrics(hier_dir/ "00_hierarchy_holesFilled")
-hierarchy_geo = read_metrics(hier_dir/ "03_hierarchy_noEuc")
-hierarchy_2Levels_noGradRot = read_metrics(hier_dir/ "16_hierarchy_2Levels_noGradRot")
+hierarchy = read_metrics(hier_dir/ "00_hierarchy")
+hierarchy_geo = read_metrics(hier_dir/ "01_hierarchy_geo")
+hierarchy_2Levels = read_metrics(hier_dir/ "03_hierarchy_2Levels")
 
 # First
 exp_name = ["Vanilla DiffusionNet", "Proposed Architecture"]
-metrics = [noGradRot, hierarchy_filled]
+metrics = [noGradRot, hierarchy]
 out_path = out_dir/ "pyramid_exp1_whole_architecture.svg"
 draw_metrics(metrics, exp_name, 50, 0, out_path)
 
 # Individual Branches
-hierarchy_euc = read_metrics(hier_dir/ "02_hierarchy_noGeo")
+hierarchy_euc = read_metrics(hier_dir/ "01_hierarchy_euc")
 exp_name = ["Both Branches", "Euclidean Branch", "Geodesic Branch"]
-metrics = [hierarchy_filled, hierarchy_euc, hierarchy_geo]
+metrics = [hierarchy, hierarchy_euc, hierarchy_geo]
 out_path = out_dir/ "pyramid_exp2_branches.svg"
 draw_metrics(metrics, exp_name, 50, 0, out_path)
 
 # Structural Tweaks
-hierarchy_resLinear = read_metrics(hier_dir/ "08_hierarchy_resLinear")
-hierarchy_noRes = read_metrics(hier_dir/ "09_hierarchy_noRes")
+hierarchy_resLinear = read_metrics(hier_dir/ "02_hierarchy_resLinear")
+hierarchy_noRes = read_metrics(hier_dir/ "02_hierarchy_noRes")
 exp_name = ["Proposed Architecture", "Linear before Residual", "No Residual"]
-metrics = [hierarchy_filled, hierarchy_resLinear, hierarchy_noRes]
+metrics = [hierarchy, hierarchy_resLinear, hierarchy_noRes]
 out_path = out_dir/ "pyramid_exp3_geo_structure.svg"
 draw_metrics(metrics, exp_name, 50, 6.5, out_path)
 
-# Structural Tweaks (2)
-hierarchy_resLinear = read_metrics(hier_dir/ "08_hierarchy_resLinear")
-hierarchy_noRes = read_metrics(hier_dir/ "09_hierarchy_noRes")
-exp_name = ["Proposed Architecture", "Linear before Residual", "No Residual"]
-metrics = [hierarchy_centered, hierarchy_resLinear, hierarchy_noRes]
-out_path = out_dir/ "pyramid_exp3_geo_structure_2.svg"
-draw_metrics(metrics, exp_name, 50, 6.5, out_path)
-
 # Number of Levels
+hierarchy_1Level = read_metrics(hier_dir/ "03_hierarchy_1Level")
 exp_name = ["Vanilla DiffusionNet", "4 Levels", "2 Levels", "1 Level"]
-metrics = [noGradRot, hierarchy_geo, hierarchy_2Levels_noGradRot, vc002]
+metrics = [noGradRot, hierarchy_geo, hierarchy_2Levels, hierarchy_1Level]
 out_path = out_dir/ "pyramid_exp4_levels.svg"
 draw_metrics(metrics, exp_name, 50, 0, out_path)
 
 # Tweaks at 2 Levels
-hierarchy_2Levels_noAug = read_metrics(hier_dir/ "11_hierarchy_2Levels_noAug")
-hierarchy_2Levels_noSkip = read_metrics(hier_dir/ "13_hierarchy_2Levels_noSkip")
-hierarchy_2Levels_rotAug = read_metrics(hier_dir/ "14_hierarchy_2Levels_rotAug")
-hierarchy_2Levels_noGradRot_1e4 = read_metrics(hier_dir/ "15_hierarchy_2Levels_1e-4_noGradRot")
+hierarchy_2Levels_noAug = read_metrics(hier_dir/ "04_hierarchy_2Levels_noAug")
+hierarchy_2Levels_noSkip = read_metrics(hier_dir/ "04_hierarchy_2Levels_noSkip")
+hierarchy_2Levels_rotAug = read_metrics(hier_dir/ "04_hierarchy_2Levels_rotAug")
+hierarchy_2Levels_lr00001 = read_metrics(hier_dir/ "04_hierarchy_2Levels_lr00001")
 exp_name = ["Default", "No Augmentation", "Rotational Augmentation", "No Skip Connection", "Initial LR 0.0001"]
-metrics = [hierarchy_2Levels_noGradRot, hierarchy_2Levels_noAug, hierarchy_2Levels_rotAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_noGradRot_1e4]
+metrics = [hierarchy_2Levels, hierarchy_2Levels_noAug, hierarchy_2Levels_rotAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_lr00001]
 out_path = out_dir/ "pyramid_exp5_tweaks_level2.svg"
 draw_metrics(metrics, exp_name, 50, 0, out_path)
-
-# Number of Blocks
-hierarchy_1B = read_metrics(hier_dir/ "04_hierarchy_1DiffBlock")
-hierarchy_4B = read_metrics(hier_dir/ "06_hierarchy_4DiffBlocks")
-exp_name = ["2 DiffusionNet Blocks", "2 (actually 1)", "1 DiffusionNet Block", "4 DiffusionNet Blocks"]
-metrics = [hierarchy_centered, hierarchy_filled, hierarchy_1B, hierarchy_4B]
-out_path = out_dir/ "pyramid_exp9_blocks.svg"
-draw_metrics(metrics, exp_name, 50, 0, out_path)
-
-# Mesh Preprocess
-exp_name = ["Raw", "Holes Filled"]
-metrics = [hierarchy_centered, hierarchy_filled]
-out_path = out_dir/ "pyramid_exp9_preprocess.svg"
-draw_metrics(metrics, exp_name, 50, 0, out_path)
-
-# Others
-hierarchy_noAug = read_metrics(hier_dir/ "01_hierarchy_noAug")
-hierarchy_c32128 = read_metrics(hier_dir/ "05_hierarchy_cWidth_32-128")
-hierarchy_2Levels = read_metrics(hier_dir/ "10_hierarchy_2Levels")
