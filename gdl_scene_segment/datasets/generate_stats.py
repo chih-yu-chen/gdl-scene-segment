@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 data_dir = Path("/media/cychen/HDD/scannet")
 split_dir = Path(__file__).parent/ "splits"
-# split_dir = Path("gdl_scene_segment", "datasets", "splits")
 with open(split_dir/ "scannetv2_train.txt", 'r') as f:
     scenes = f.read().splitlines()
 with open(split_dir/ "scannetv2_val.txt", 'r') as f:
