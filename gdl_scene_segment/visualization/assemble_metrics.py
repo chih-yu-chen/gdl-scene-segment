@@ -82,7 +82,7 @@ exps = [xyzrgb, single, filled, multi]
 indices = ("Raw", "Disconnection Removed", "Holes Filled", "Both")
 exps_to_csv(exps, 50, indices, exps_dir/ "base_exp01")
 
-vc002 = read_val_ious(hier_dir/ "12_hierarchy_1Level")
+vc002 = read_val_ious(base_dir/ "02_baseline_vc002")
 exps = [xyzrgb, vc002]
 indices = ("Raw", "Vertex-Clustered")
 exps_to_csv(exps, 50, indices, exps_dir/ "base_exp02")
@@ -100,52 +100,54 @@ lr01 = read_val_ious(base_dir/ "05_baseline_lr01")
 lr001 = read_val_ious(base_dir/ "05_baseline_lr001")
 exps = [noGradRot, lr001, lr01]
 indices = ("LR 0.001", "LR 0.01", "LR 0.1 (10)")
-exps_to_csv(exps, 50, indices, exps_dir/ "base_exp05_1")
+exps_to_csv(exps, 50, indices, exps_dir/ "base_exp05_0")
 
 lrs_diffnet = read_val_ious(base_dir/ "06_baseline_lrs_DiffusionNet_50")
 lrs_vmnet = read_val_ious(base_dir/ "06_baseline_lrs_VMNet_100")
 exps = [noGradRot, lrs_diffnet, lrs_vmnet]
 indices = ("PicassoNet++ (75)", "DiffusionNet (75)", "VMNet (75)")
-exps_to_csv(exps, 75, indices, exps_dir/ "base_exp05_2")
+exps_to_csv(exps, 75, indices, exps_dir/ "base_exp05_1")
 
 cw64 = read_val_ious(base_dir/ "07_baseline_cWidth64")
 cw256 = read_val_ious(base_dir/ "07_baseline_cWidth256")
 block8 = read_val_ious(base_dir/ "08_baseline_8Blocks_cWidth64")
 exps = [cw64, noGradRot, cw256, block8]
 indices = ("4 Blocks Width 64 (75)", "4 Blocks Width 128 (75)", "4 Blocks Width 256", "8 Blocks Width 64")
-exps_to_csv(exps, [75,75,50,50], indices, exps_dir/ "base_exp05_3")
+exps_to_csv(exps, [75,75,50,50], indices, exps_dir/ "base_exp05_2-3")
 
 
 
 # Experiments on Proposed Architecture
 # --------------------------------------------
 noGradRot = read_val_ious(base_dir/ "03_baseline_noGradientRotation")
-hierarchy_filled = read_val_ious(hier_dir/ "00_hierarchy_holesFilled")
-exps = [noGradRot, hierarchy_filled]
+hierarchy = read_val_ious(hier_dir/ "00_hierarchy")
+hierarchy_geo = read_val_ious(hier_dir/ "01_hierarchy_geo")
+hierarchy_2Levels = read_val_ious(hier_dir/ "03_hierarchy_2Levels")
+
+exps = [noGradRot, hierarchy]
 indices = ("Vanilla", "Proposed")
 exps_to_csv(exps, 50, indices, exps_dir/ "hier_exp00")
 
-hierarchy_euc = read_val_ious(hier_dir/ "02_hierarchy_noGeo")
-hierarchy_geo = read_val_ious(hier_dir/ "03_hierarchy_noEuc")
-exps = [hierarchy_filled, hierarchy_euc, hierarchy_geo]
+hierarchy_euc = read_val_ious(hier_dir/ "01_hierarchy_euc")
+exps = [hierarchy, hierarchy_euc, hierarchy_geo]
 indices = ("Both", "Euclidean (30)", "Geodesic (10)")
 exps_to_csv(exps, 50, indices, exps_dir/ "hier_exp01")
 
-hierarchy_resLinear = read_val_ious(hier_dir/ "08_hierarchy_resLinear")
-hierarchy_noRes = read_val_ious(hier_dir/ "09_hierarchy_noRes")
-exps = [hierarchy_filled, hierarchy_resLinear, hierarchy_noRes]
+hierarchy_resLinear = read_val_ious(hier_dir/ "02_hierarchy_resLinear")
+hierarchy_noRes = read_val_ious(hier_dir/ "02_hierarchy_noRes")
+exps = [hierarchy, hierarchy_resLinear, hierarchy_noRes]
 indices = ("Proposed", "Linear Residual", "No Residual")
 exps_to_csv(exps, 50, indices, exps_dir/ "hier_exp02")
 
-hierarchy_2Levels_noGradRot = read_val_ious(hier_dir/ "16_hierarchy_2Levels_noGradRot")
-exps = [noGradRot, hierarchy_geo, hierarchy_2Levels_noGradRot, vc002]
+hierarchy_1Level = read_val_ious(hier_dir/ "03_hierarchy_1Level")
+exps = [noGradRot, hierarchy_geo, hierarchy_2Levels, hierarchy_1Level]
 indices = ("Vanilla", "4 Levels (10)", "2 Levels", "1 Level")
 exps_to_csv(exps, 50, indices, exps_dir/ "hier_exp03")
 
-hierarchy_2Levels_noAug = read_val_ious(hier_dir/ "11_hierarchy_2Levels_noAug")
-hierarchy_2Levels_rotAug = read_val_ious(hier_dir/ "14_hierarchy_2Levels_rotAug")
-hierarchy_2Levels_noSkip = read_val_ious(hier_dir/ "13_hierarchy_2Levels_noSkip")
-hierarchy_2Levels_noGradRot_1e4 = read_val_ious(hier_dir/ "15_hierarchy_2Levels_1e-4_noGradRot")
-exps = [hierarchy_2Levels_noGradRot, hierarchy_2Levels_noAug, hierarchy_2Levels_rotAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_noGradRot_1e4]
+hierarchy_2Levels_noAug = read_val_ious(hier_dir/ "04_hierarchy_2Levels_noAug")
+hierarchy_2Levels_rotAug = read_val_ious(hier_dir/ "04_hierarchy_2Levels_rotAug")
+hierarchy_2Levels_noSkip = read_val_ious(hier_dir/ "04_hierarchy_2Levels_noSkip")
+hierarchy_2Levels_lr00001 = read_val_ious(hier_dir/ "04_hierarchy_2Levels_lr00001-4_noGradRot")
+exps = [hierarchy_2Levels, hierarchy_2Levels_noAug, hierarchy_2Levels_rotAug, hierarchy_2Levels_noSkip, hierarchy_2Levels_lr00001]
 indices = ("Default", "No Aug.", "Rot. Aug. (38)", "No Skip (8)", "LR 0.0001 (37)")
 exps_to_csv(exps, 50, indices, exps_dir/ "hier_exp04")
