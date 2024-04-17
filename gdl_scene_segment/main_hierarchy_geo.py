@@ -11,13 +11,12 @@ pkg_path = Path(__file__).parents[1]/ "diffusion-net"/ "src"
 sys.path.append(pkg_path.as_posix())
 import diffusion_net
 
-from datasets.scannet_hierarchy_dataset_test_geo import ScanNetHierarchyDataset
-from model import model_test_geo, utils
+from datasets.scannet_hierarchy_dataset_geo import ScanNetHierarchyDataset
+from model import model_geo, utils
 from config.config import settings
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-wandb.login()
 
 
 
@@ -65,7 +64,7 @@ n_mlp_hidden = settings.model.n_mlp_hidden
 dropout = settings.model.dropout
 gradient_rotation = settings.model.gradient_rotation
 
-c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16}[input_features]
+c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16, 'hksrgb': 19}[input_features]
 c_out = n_class
 
 n_levels = settings.model.hierarchy.n_levels
@@ -89,30 +88,29 @@ checkpt_every = settings.training.checkpt_every
 
 # augmentation settings
 random_rotate = settings.training.augment.rotate
-other_augment = settings.training.augment.other
+random_offset = settings.training.augment.translate
+random_flip = settings.training.augment.flip
+random_scale = settings.training.augment.scale
+chromatic_jitter = settings.training.augment.rgb_jitter
+augment_operators = settings.training.augment.operators
 translate_scale = settings.training.augment.translate_scale
 scaling_range = settings.training.augment.scaling_range
 
 
 
 # w&b setup
-wandb.init(
-    project="gdl_scene_segment",
-    name=experiment,
-    config=settings.to_dict()
-)
+use_wandb = settings.experiment.wandb
+if use_wandb:
+    wandb.login()
+    wandb.init(
+        project="gdl_scene_segment",
+        name=experiment,
+        config=settings.to_dict()
+    )
 
 
 
 # datasets
-val_dataset = ScanNetHierarchyDataset(train=False,
-                                      data_dir=data_dir,
-                                      preprocess=preprocess,
-                                      n_levels=n_levels,
-                                      k_eig=k_eig,
-                                      op_cache_dir=op_cache_dir)
-val_loader = DataLoader(val_dataset, batch_size=None)
-
 if train:
     train_dataset = ScanNetHierarchyDataset(train=True,
                                             data_dir=data_dir,
@@ -122,17 +120,25 @@ if train:
                                             op_cache_dir=op_cache_dir)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
+val_dataset = ScanNetHierarchyDataset(train=False,
+                                      data_dir=data_dir,
+                                      preprocess=preprocess,
+                                      n_levels=n_levels,
+                                      k_eig=k_eig,
+                                      op_cache_dir=op_cache_dir)
+val_loader = DataLoader(val_dataset, batch_size=None)
+
 
 
 # the model
-m = model_test_geo.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
-                                     n_mlp_hidden=n_mlp_hidden,
-                                     dropout=dropout,
-                                     with_gradient_rotations=gradient_rotation,
-                                     c_in=c_in,
-                                     c_out=c_out,
-                                     c3=c3,
-                                     c_m=c_m
+m = model_geo.DiffusionVoxelNet(n_diffnet_blocks=n_diffnet_blocks,
+                                n_mlp_hidden=n_mlp_hidden,
+                                dropout=dropout,
+                                with_gradient_rotations=gradient_rotation,
+                                c_in=c_in,
+                                c_out=c_out,
+                                c3=c3,
+                                c_m=c_m
 )
 
 m = m.to(device)
@@ -154,12 +160,17 @@ if not train:
 
 # the optimizer & learning rate scheduler
 optimizer = torch.optim.Adam(m.parameters(), lr=lr, weight_decay=wd)
-lr_step_size = settings.training.lr_step_size
-gamma = settings.training.lr_step_gamma
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
-# # VMNet & DGNet
-# lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
-# scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
+
+lr_scheduler = settings.training.lr_scheduler
+if lr_scheduler == "step":
+    # DiffusionNet & PicassoNet++
+    lr_step_size = settings.training.lr_step_size
+    gamma = settings.training.lr_step_gamma
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=gamma, verbose=True)
+elif lr_scheduler == "lambda":
+    # VMNet & DGNet
+    lr_lambda = lambda epoch: (1 - epoch/(n_epoch+1)) ** 0.9
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda, verbose=True)
 
 
 
@@ -194,11 +205,15 @@ def train_epoch():
             rot_mat = utils.random_rotate_points_z()
             verts = torch.matmul(verts, rot_mat)
 
-        if other_augment:
+        if random_offset:
             offset = utils.random_translate(scale=translate_scale)
             verts += offset
+
+        if random_flip:
             sign = utils.random_flip()
             verts[:,0] *= sign
+
+        if random_scale:
             scale = utils.random_scale(scaling_range=scaling_range)
             verts *= scale
 
@@ -206,7 +221,7 @@ def train_epoch():
         verts = verts / norm_max
 
         # rgb features
-        if other_augment:
+        if chromatic_jitter:
             rgb_shape = rgb.shape
             jitter = utils.random_rgb_jitter(rgb_shape, scale=0.05)
             rgb += jitter
@@ -219,6 +234,9 @@ def train_epoch():
             x_in = torch.hstack((verts, rgb)).float()
         elif input_features == 'hks':
             x_in = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
+        elif input_features == 'hksrgb':
+            hks = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
+            x_in = torch.hstack((hks, rgb)).float()
 
         # move to device
         x_in = x_in.to(device)
@@ -344,6 +362,9 @@ def val(save_pred=False):
                 x_in = torch.hstack((verts, rgb)).float()
             elif input_features == 'hks':
                 x_in = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
+            elif input_features == 'hksrgb':
+                hks = diffusion_net.geometry.compute_hks_autoscale(evals_3, evecs_3, 16)
+                x_in = torch.hstack((hks, rgb)).float()
 
             # move to device
             x_in = x_in.to(device)
@@ -454,12 +475,13 @@ if train:
         val_loss, val_ious = val()
         scheduler.step()
 
-        wandb.log({
-            "train/loss": train_loss,
-            "train/mIoU": train_ious[0],
-            "val/loss": val_loss,
-            "val/mIoU": val_ious[0],
-        })
+        if use_wandb:
+            wandb.log({
+                "train/loss": train_loss,
+                "train/mIoU": train_ious[0],
+                "val/loss": val_loss,
+                "val/mIoU": val_ious[0],
+            })
         print(f"Epoch {epoch}")
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
@@ -481,4 +503,5 @@ if train:
 
 val_loss, val_ious = val(save_pred=True)
 print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
-wandb.finish()
+if use_wandb:
+    wandb.finish()

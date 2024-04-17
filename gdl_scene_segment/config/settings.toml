@@ -43,3 +43,4 @@ scaling_range = 0.5
 
 [experiment]
 name = ""
+wandb = false

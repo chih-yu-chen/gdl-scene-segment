@@ -17,7 +17,6 @@ from config.config import settings
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-wandb.login()
 
 
 
@@ -67,8 +66,8 @@ gradient_rotation = settings.model.gradient_rotation
 
 c_in = {'xyz':3, 'xyzrgb': 6, 'hks':16, 'hksrgb': 19}[input_features]
 c_out = n_class
+
 c0 = settings.model.c0
-mlp_hidden_dims = [c0] * n_mlp_hidden
 loss_f = torch.nn.functional.cross_entropy
 
 
@@ -95,11 +94,14 @@ scaling_range = settings.training.augment.scaling_range
 
 
 # w&b setup
-wandb.init(
-    project="gdl_scene_segment",
-    name=experiment,
-    config=settings.to_dict()
-)
+use_wandb = settings.experiment.wandb
+if use_wandb:
+    wandb.login()
+    wandb.init(
+        project="gdl_scene_segment",
+        name=experiment,
+        config=settings.to_dict()
+    )
 
 
 
@@ -124,7 +126,7 @@ model = diffusion_net.layers.DiffusionNet(C_in=c_in,
                                           C_out=n_class,
                                           C_width=c0,
                                           N_block=n_diffnet_blocks,
-                                          mlp_hidden_dims=mlp_hidden_dims,
+                                          mlp_hidden_dims=[c0]*n_mlp_hidden,
                                           outputs_at='vertices',
                                           dropout=dropout,
                                           with_gradient_rotations=gradient_rotation,
@@ -401,12 +403,13 @@ if train:
         val_loss, val_ious = val()
         scheduler.step()
 
-        wandb.log({
-            "train/loss": train_loss,
-            "train/mIoU": train_ious[0],
-            "val/loss": val_loss,
-            "val/mIoU": val_ious[0],
-        })
+        if use_wandb:
+            wandb.log({
+                "train/loss": train_loss,
+                "train/mIoU": train_ious[0],
+                "val/loss": val_loss,
+                "val/mIoU": val_ious[0],
+            })
         print(f"Epoch {epoch}")
         print(f"Train Loss: {train_loss:.4f}, Train mIoU: {train_ious[0]:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
@@ -429,4 +432,5 @@ if train:
 val_loss, val_ious = val(save_pred=True)
 print(f"Last Val Loss: {val_loss:.4f}, Val mIoU: {val_ious[0]:.4f}")
 test()
-wandb.finish()
+if use_wandb:
+    wandb.finish()
