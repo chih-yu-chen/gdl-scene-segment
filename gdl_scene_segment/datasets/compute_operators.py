@@ -43,13 +43,19 @@ if __name__ == "__main__":
                         help="directory to the ScanNet dataset")
     parser.add_argument("--preprocess", type=str,
                         help="which preprocessing", required=True)
+    parser.add_argument('--n_levels', type=int, default=0,
+                        help="how many levels for architecture; input 0 if vanilla DiffusionNet")
     args = parser.parse_args()
 
     # model settings
     k_eig = 128
+    n_levels = args.n_levels
 
     # paths
     data_dir = Path(args.data_dir, args.preprocess)
+    hierarchy_dir = data_dir/ "hierarchy"
+    normmax_dir = data_dir/ "norm_max"
+    normmax_dir.mkdir(parents=True, exist_ok=True)
     op_cache_dir = data_dir.parent/ "diffusion-net"/ f"op_cache_{k_eig}"/ args.preprocess
     op_cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,15 +71,26 @@ if __name__ == "__main__":
     for scene in tqdm(scenes):
 
         # load mesh
-        mesh_path = data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
-        verts, faces = pp3d.read_mesh(mesh_path.as_posix())
-        verts = torch.tensor(np.ascontiguousarray(verts)).float()
-        faces = torch.tensor(np.ascontiguousarray(faces.astype(np.int32)))
+        mesh_paths = [data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"]
+
+        if n_levels > 0:
+            mesh_paths += [hierarchy_dir/ "scenes"/ f"{scene}_vh_clean_2_{i+1}.ply"
+                           for i in range(n_levels)]
+
+        verts = []
+        faces = []
+
+        for path in mesh_paths:
+            v, f = pp3d.read_mesh(path.as_posix())
+            verts.append(torch.tensor(np.ascontiguousarray(v)).float())
+            faces.append(torch.tensor(np.ascontiguousarray(f.astype(np.int32))))
 
         # unit scale
-        scale = np.linalg.norm(verts, axis=-1).max()
-        verts = verts / scale
-        # verts = diffusion_net.geometry.normalize_positions(verts)
+        norm_max = np.linalg.norm(verts[0], axis=-1).max()
+        with open(normmax_dir/ f"{scene}_norm_max.txt", 'w') as f:
+            f.write(str(norm_max))
+        verts = [v / norm_max for v in verts]
 
         # precompute operators
-        _ = diffusion_net.geometry.get_operators(verts, faces, k_eig, op_cache_dir)
+        for v, f in zip(verts, faces):
+            _ = diffusion_net.geometry.get_operators(v, f, k_eig, op_cache_dir)
