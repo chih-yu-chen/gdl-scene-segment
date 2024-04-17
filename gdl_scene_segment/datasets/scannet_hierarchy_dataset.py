@@ -9,7 +9,7 @@ from torch_scatter import scatter_mean
 import potpourri3d as pp3d
 
 pkg_path = Path(__file__).parents[2]/ "diffusion-net"/ "src"
-sys.path.append(str(pkg_path))
+sys.path.append(pkg_path.as_posix())
 import diffusion_net
 
 
@@ -57,7 +57,7 @@ class ScanNetHierarchyDataset(Dataset):
 
         # load mesh * n_levels+1
         mesh_path = self.data_dir/ "scenes"/ f"{scene}_vh_clean_2.ply"
-        mesh_paths = [self.hierarchy_dir/ "scenes"/ mesh_path.with_stem(f"{mesh_path.stem}_{i+1}").name
+        mesh_paths = [self.hierarchy_dir/ "scenes"/ f"{scene}_vh_clean_2_{i+1}.ply"
                       for i in range(self.n_levels)]
         mesh_paths.insert(0, mesh_path)
 
@@ -118,11 +118,11 @@ class ScanNetHierarchyDataset(Dataset):
         rgbs.append(scatter_mean(rgb, traces[0], dim=-2))
 
         # load idx * 1
-        if not self.preprocess == "centered":
+        if self.preprocess == "centered":
+            ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
+        else:
             idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
             ref_idx = np.loadtxt(idx_path, dtype=np.int64)
-        else:
-            ref_idx = np.arange(verts[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, verts, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max
+        return scene, verts, faces, rgbs, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max, traces

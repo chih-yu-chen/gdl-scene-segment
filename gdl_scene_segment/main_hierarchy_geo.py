@@ -175,7 +175,7 @@ def train_epoch():
 
     optimizer.zero_grad()
 
-    for i, (_, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max) in enumerate(tqdm(train_loader)):
+    for i, (_, verts, _, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max, traces) in enumerate(tqdm(train_loader)):
 
         # unpack lists
         mass_3, mass_m = mass
@@ -320,7 +320,7 @@ def val(save_pred=False):
 
     with torch.no_grad():
     
-        for scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max in tqdm(val_loader):
+        for scene, verts, _, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max, traces in tqdm(val_loader):
 
             # unpack lists
             mass_3, mass_m = mass

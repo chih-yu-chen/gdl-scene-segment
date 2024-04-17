@@ -114,11 +114,11 @@ class ScanNetHierarchyDataset(Dataset):
         rgb = scatter_mean(rgb, traces[0], dim=-2)
 
         # load idx * 1
-        if not self.preprocess == "centered":
+        if self.preprocess == "centered":
+            ref_idx = np.arange(traces[0].shape[0], dtype=np.int64)
+        else:
             idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
             ref_idx = np.loadtxt(idx_path, dtype=np.int64)
-        else:
-            ref_idx = np.arange(traces[0].shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
-        return scene, verts, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, traces, norm_max
+        return scene, verts, faces, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max, traces

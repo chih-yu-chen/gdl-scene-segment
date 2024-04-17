@@ -74,13 +74,13 @@ class ScanNetDataset(Dataset):
         verts = verts * norm_max
 
         # load labels
-        if not self.test:
+        if self.test:
+            labels = []
+        else:
             label_path = self.data_dir/ "labels"/ f"{scene}_labels.txt"
             labels = np.loadtxt(label_path, dtype=np.int8)
             labels = self.label_map[labels]
             labels = torch.tensor(np.ascontiguousarray(labels.astype(np.int64)))
-        else:
-            labels = []
 
         # load rgb
         rgb_path = self.data_dir/ "rgb"/ f"{scene}_rgb.txt"
@@ -89,11 +89,11 @@ class ScanNetDataset(Dataset):
         rgb = torch.tensor(np.ascontiguousarray(rgb)).float()
 
         # load idx
-        if not self.preprocess == "centered":
+        if self.preprocess == "centered":
+            ref_idx = np.arange(verts.shape[0], dtype=np.int64)
+        else:
             idx_path = self.data_dir/ "idx"/ f"{scene}_referenced_idx.txt"
             ref_idx = np.loadtxt(idx_path, dtype=np.int64)
-        else:
-            ref_idx = np.arange(verts.shape[0], dtype=np.int64)
         ref_idx = torch.tensor(np.ascontiguousarray(ref_idx))
 
         return scene, verts, faces, rgb, mass, L, evals, evecs, gradX, gradY, labels, ref_idx, norm_max
