@@ -5,13 +5,11 @@ from pathlib import Path
 
 
 # Visualize proportion of vertices after mesh simplification
-def draw_nvertices_hist(out_path):
+def draw_nvertices_hist(out_path, centered, level1):
 
-    vf = np.loadtxt(data_dir/ "stats"/ "nvnf_centered.txt", delimiter=',', skiprows=1, dtype=np.int_)
-    v002 = np.loadtxt(data_dir/ "stats"/ "nvnf_level1.txt", delimiter=',', skiprows=1, dtype=np.int_)
     _, ax = plt.subplots(layout="constrained")
-    _ = ax.hist(vf[:,0], bins=200, alpha=0.7, label="Raw Scenes")
-    _ = ax.hist(v002, bins=200, alpha=0.7, label="Simplified Scenes")
+    _ = ax.hist(centered[:,0], bins=200, alpha=0.7, label="Raw Scenes")
+    _ = ax.hist(level1[:,0], bins=200, alpha=0.7, label="Simplified Scenes")
     ax.set_title("Number of Vertices in ScanNet Scenes", fontsize=16)
     ax.set_xlabel("Number of Vertices")
     ax.set_ylabel("Number of Scenes")
@@ -46,10 +44,11 @@ with open(split_dir/ "scannetv2_val.txt", 'r') as f:
     scenes.extend(f.read().splitlines())
 
 centered = np.loadtxt(data_dir/ "stats"/ "nvnf_centered.txt", dtype=np.int_)
+l1 = np.loadtxt(data_dir/ "stats"/ "nvnf_level1.txt", dtype=np.int_)
 single = np.loadtxt(data_dir/ "stats"/ "nvnf_single_components.txt", dtype=np.int_)
 
 out_dir = Path("visualizations", "eigenbases")
 # draw_single_comp_proportion(out_dir/ "largest_comp_proportion.svg", centered, single)
 
 out_dir = Path("visualizations", "metrics")
-# draw_nvertices_hist(out_dir/ "n_vertices_hist.svg")
+draw_nvertices_hist(out_dir/ "n_vertices_hist.png", centered, l1)
